@@ -204,6 +204,10 @@ try
     var encryption = scope.ServiceProvider.GetRequiredService<EncryptionService>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
+    // Apply pending migrations automatically
+    await db.Database.MigrateAsync();
+    logger.LogInformation("Database migrations applied successfully");
+
     var superEmail = config["SuperAdmin:Email"] ?? "superadmin@holeritesign.com";
     var superPassword = config["SuperAdmin:Password"] ?? "Super@123";
 
