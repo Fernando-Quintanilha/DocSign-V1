@@ -176,3 +176,35 @@ export interface AdminProfile {
   planName: string;
   emailVerified: boolean;
 }
+
+// ── WhatsApp ──────────────────────────────────────────────
+
+export interface WhatsAppQrCode {
+  pairingCode: string | null;
+  code: string | null;
+  base64: string | null;
+  count: number;
+}
+
+export interface WhatsAppStatus {
+  instance: {
+    instanceName: string;
+    instanceId: string;
+    status: string;
+  } | null;
+  state: string;
+}
+
+export interface WhatsAppCreateInstanceResponse {
+  instance: {
+    instanceName: string;
+    instanceId: string;
+    status: string;
+  } | null;
+  hash: string | null;
+  qrcode: {
+    pairingCode: string | null;
+    code: string | null;
+    base64: string | null;
+  } | null;
+}

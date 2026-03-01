@@ -103,6 +103,9 @@ builder.Services.AddScoped<SignedPdfService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<ExportService>();
 
+// WhatsApp (Evolution API)
+builder.Services.AddHttpClient<WhatsAppService>();
+
 // Background jobs
 builder.Services.AddHostedService<TokenExpirationJob>();
 

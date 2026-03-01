@@ -26,6 +26,7 @@ export default function AdminLayout() {
     { to: '/admin/backup', label: 'Backup' },
     { to: '/admin/plans', label: 'Planos' },
     { to: '/admin/settings', label: 'Configurações' },
+    { to: '/admin/whatsapp', label: 'WhatsApp' },
     ...(isSuperAdmin ? [{ to: '/admin/super', label: 'Super Admin' }] : []),
   ];
 

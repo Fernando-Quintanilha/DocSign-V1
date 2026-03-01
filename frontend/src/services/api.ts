@@ -14,6 +14,9 @@ import type {
   NotificationDto,
   AuditLogPage,
   AdminProfile,
+  WhatsAppQrCode,
+  WhatsAppStatus,
+  WhatsAppCreateInstanceResponse,
 } from '../types';
 
 // ── Employees ─────────────────────────────────────────────
@@ -283,4 +286,25 @@ export const fetchPlans = async () => {
 export const fetchCurrentPlan = async () => {
   const { data } = await api.get('/plans/current');
   return data;
+};
+
+// ── WhatsApp ─────────────────────────────────────────────
+
+export const createWhatsAppInstance = async (): Promise<WhatsAppCreateInstanceResponse> => {
+  const { data } = await api.post('/notifications/whatsapp/create-instance');
+  return data;
+};
+
+export const fetchWhatsAppQrCode = async (): Promise<WhatsAppQrCode> => {
+  const { data } = await api.get('/notifications/whatsapp/qrcode');
+  return data;
+};
+
+export const fetchWhatsAppStatus = async (): Promise<WhatsAppStatus> => {
+  const { data } = await api.get('/notifications/whatsapp/status');
+  return data;
+};
+
+export const logoutWhatsApp = async (): Promise<void> => {
+  await api.delete('/notifications/whatsapp/logout');
 };

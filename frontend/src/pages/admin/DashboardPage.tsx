@@ -175,13 +175,28 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   {emp.documentId && emp.documentStatus !== 'NoDocument' && (
-                    <button
-                      onClick={() => sendNotifMutation.mutate({ docId: emp.documentId!, channel: 'Email' })}
-                      disabled={sendNotifMutation.isPending}
-                      className="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-md font-medium"
-                    >
-                      Lembrete
-                    </button>
+                    <div className="relative inline-block group">
+                      <button
+                        disabled={sendNotifMutation.isPending}
+                        className="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-md font-medium"
+                      >
+                        Lembrete ▾
+                      </button>
+                      <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                        <button
+                          onClick={() => sendNotifMutation.mutate({ docId: emp.documentId!, channel: 'Email' })}
+                          className="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 rounded-t-lg"
+                        >
+                          📧 E-mail
+                        </button>
+                        <button
+                          onClick={() => sendNotifMutation.mutate({ docId: emp.documentId!, channel: 'WhatsApp' })}
+                          className="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 rounded-b-lg"
+                        >
+                          💬 WhatsApp
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </li>
               ))}

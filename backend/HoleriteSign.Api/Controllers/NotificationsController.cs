@@ -12,10 +12,17 @@ namespace HoleriteSign.Api.Controllers;
 public class NotificationsController : ControllerBase
 {
     private readonly NotificationService _notificationService;
+    private readonly WhatsAppService _whatsAppService;
+    private readonly ILogger<NotificationsController> _logger;
 
-    public NotificationsController(NotificationService notificationService)
+    public NotificationsController(
+        NotificationService notificationService,
+        WhatsAppService whatsAppService,
+        ILogger<NotificationsController> logger)
     {
         _notificationService = notificationService;
+        _whatsAppService = whatsAppService;
+        _logger = logger;
     }
 
     private Guid GetAdminId() =>
@@ -57,5 +64,66 @@ public class NotificationsController : ControllerBase
     {
         var result = await _notificationService.ListAsync(documentId);
         return Ok(result);
+    }
+
+    // ── WhatsApp Management ────────────────────────────────
+
+    /// <summary>POST /api/notifications/whatsapp/create-instance</summary>
+    [HttpPost("whatsapp/create-instance")]
+    public async Task<IActionResult> CreateWhatsAppInstance()
+    {
+        var result = await _whatsAppService.CreateInstanceAsync();
+        if (result == null) return StatusCode(502, new { message = "Falha ao criar instância WhatsApp." });
+        return Ok(result);
+    }
+
+    /// <summary>GET /api/notifications/whatsapp/qrcode</summary>
+    [HttpGet("whatsapp/qrcode")]
+    public async Task<IActionResult> GetWhatsAppQrCode()
+    {
+        var result = await _whatsAppService.GetQrCodeAsync();
+        if (result == null) return StatusCode(502, new { message = "Falha ao obter QR code. Verifique se a instância foi criada." });
+        return Ok(result);
+    }
+
+    /// <summary>GET /api/notifications/whatsapp/status</summary>
+    [HttpGet("whatsapp/status")]
+    public async Task<IActionResult> GetWhatsAppStatus()
+    {
+        var result = await _whatsAppService.GetConnectionStatusAsync();
+        if (result == null) return Ok(new { state = "disconnected", instance = (object?)null });
+        return Ok(result);
+    }
+
+    /// <summary>DELETE /api/notifications/whatsapp/logout</summary>
+    [HttpDelete("whatsapp/logout")]
+    public async Task<IActionResult> LogoutWhatsApp()
+    {
+        var ok = await _whatsAppService.LogoutInstanceAsync();
+        return ok ? Ok(new { message = "WhatsApp desconectado." }) : StatusCode(502, new { message = "Falha ao desconectar." });
+    }
+
+    /// <summary>POST /api/notifications/webhook/evolution — Evolution API delivery webhooks (no auth)</summary>
+    [HttpPost("webhook/evolution")]
+    [AllowAnonymous]
+    public IActionResult EvolutionWebhook([FromBody] EvolutionWebhookPayload payload)
+    {
+        _logger.LogInformation("Evolution webhook: {Event} for instance {Instance}", payload.Event, payload.Instance);
+
+        // Process delivery/read acknowledgments
+        switch (payload.Event)
+        {
+            case "messages.update":
+                _logger.LogInformation("Message status update: {Data}", payload.Data?.ToString());
+                break;
+            case "connection.update":
+                _logger.LogInformation("Connection update: {Data}", payload.Data?.ToString());
+                break;
+            default:
+                _logger.LogDebug("Unhandled webhook event: {Event}", payload.Event);
+                break;
+        }
+
+        return Ok(new { received = true });
     }
 }

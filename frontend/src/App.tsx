@@ -16,6 +16,7 @@ import ProfilePage from './pages/admin/ProfilePage';
 import PlansPage from './pages/admin/PlansPage';
 import SettingsPage from './pages/admin/SettingsPage';
 import SuperAdminPage from './pages/admin/SuperAdminPage';
+import WhatsAppConfigPage from './pages/admin/WhatsAppConfigPage';
 import SignPage from './pages/sign/SignPage';
 import PrivacyPolicyPage from './pages/public/PrivacyPolicyPage';
 import AdminLayout from './components/layout/AdminLayout';
@@ -59,6 +60,7 @@ function App() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="plans" element={<PlansPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="whatsapp" element={<WhatsAppConfigPage />} />
             <Route path="super" element={<SuperAdminPage />} />
           </Route>
 

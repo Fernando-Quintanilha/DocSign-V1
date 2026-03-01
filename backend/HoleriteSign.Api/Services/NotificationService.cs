@@ -15,17 +15,23 @@ public class NotificationService
     private readonly IAuditService _audit;
     private readonly SigningService _signingService;
     private readonly IConfiguration _config;
+    private readonly WhatsAppService _whatsApp;
+    private readonly ILogger<NotificationService> _logger;
 
     public NotificationService(
         AppDbContext db,
         IAuditService audit,
         SigningService signingService,
-        IConfiguration config)
+        IConfiguration config,
+        WhatsAppService whatsApp,
+        ILogger<NotificationService> logger)
     {
         _db = db;
         _audit = audit;
         _signingService = signingService;
         _config = config;
+        _whatsApp = whatsApp;
+        _logger = logger;
     }
 
     /// <summary>
@@ -217,18 +223,24 @@ public class NotificationService
         await client.SendMailAsync(message);
     }
 
-    private Task SendWhatsAppAsync(Employee employee, Document document, string signingUrl)
+    private async Task SendWhatsAppAsync(Employee employee, Document document, string signingUrl)
     {
         if (string.IsNullOrEmpty(employee.WhatsApp))
             throw new InvalidOperationException("Funcionário não possui WhatsApp cadastrado.");
 
-        // MVP: Simulate WhatsApp sending
-        var msg = $"Olá {employee.Name}! Seu holerite de {document.PayPeriod.Label} está disponível. " +
-                  $"Acesse: {signingUrl}";
+        var msg = $"📄 *HoleriteSign*\n\n" +
+                  $"Olá *{employee.Name}*!\n\n" +
+                  $"Seu holerite de *{document.PayPeriod.Label}* está disponível para assinatura.\n\n" +
+                  $"🔗 Acesse o link abaixo para visualizar e assinar:\n{signingUrl}\n\n" +
+                  $"⏰ Este link é válido por 72 horas.";
 
-        Console.WriteLine($"[WHATSAPP SIMULADO] Para: {employee.WhatsApp} | Mensagem: {msg}");
+        var result = await _whatsApp.SendTextMessageAsync(employee.WhatsApp, msg);
 
-        // TODO: Integrate with WhatsApp Business API (Twilio/360dialog/etc.)
-        return Task.CompletedTask;
+        if (result?.Key?.Id != null)
+        {
+            _logger.LogInformation(
+                "WhatsApp enviado para {Phone} (msgId: {MsgId})",
+                employee.WhatsApp, result.Key.Id);
+        }
     }
 }

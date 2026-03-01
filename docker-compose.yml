@@ -118,6 +118,10 @@ services:
       Smtp__FromName: ${SMTP_FROM_NAME:-HoleriteSign}
       # ── Encryption ──────────────────────────────────────
       Encryption__Key: ${ENCRYPTION_KEY:?Set ENCRYPTION_KEY (min 32 chars)}
+      # ── WhatsApp (Evolution API) ─────────────────────
+      WhatsApp__BaseUrl: http://evolution:8080
+      WhatsApp__ApiKey: ${EVOLUTION_API_KEY:-CHANGE_ME_IN_PRODUCTION}
+      WhatsApp__InstanceName: ${WHATSAPP_INSTANCE_NAME:-holeritesign}
       # ── Super Admin seed ────────────────────────────────
       SuperAdmin__Email: ${SUPERADMIN_EMAIL:-superadmin@holeritesign.com}
       SuperAdmin__Password: ${SUPERADMIN_PASSWORD:-Super@123}
@@ -126,6 +130,41 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+    networks:
+      - hs-internal
+
+  # ── Evolution API (WhatsApp) ───────────────────────────────
+  evolution:
+    image: atendai/evolution-api:latest
+    restart: always
+    environment:
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://evolution:8080}
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-CHANGE_ME_IN_PRODUCTION}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: "postgresql://${POSTGRES_USER:-holeritesign}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-holeritesign}?schema=evolution"
+      DATABASE_CONNECTION_CLIENT_NAME: evolution
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: "redis://:${REDIS_PASSWORD:-redis_prod_secret}@redis:6379/1"
+      LOG_LEVEL: "WARN"
+      DEL_INSTANCE: "false"
+      STORE_MESSAGES: "true"
+      STORE_MESSAGE_UP: "true"
+      STORE_CONTACTS: "true"
+      STORE_CHATS: "true"
+      QRCODE_LIMIT: 10
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - evolution_instances:/evolution/instances
     networks:
       - hs-internal
 
@@ -145,6 +184,7 @@ services:
 volumes:
   pgdata:
   miniodata:
+  evolution_instances:
 
 networks:
   hs-internal:
