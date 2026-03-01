@@ -59,7 +59,8 @@ export default function DashboardPage() {
     );
   }
 
-  const usageMax = data.planMaxDocuments === -1 ? '∞' : data.planMaxDocuments;
+  const usageMaxLabel = data.planMaxDocuments === -1 ? '∞' : data.planMaxDocuments;
+  const usageMaxNum = data.planMaxDocuments === -1 ? 100 : data.planMaxDocuments;
   const usagePct = data.planMaxDocuments > 0
     ? Math.round((data.documentsUsedThisMonth / data.planMaxDocuments) * 100)
     : 0;
@@ -102,7 +103,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold text-gray-900">Uso do Plano (este mês)</h2>
           <span className="text-sm text-gray-500">
-            {data.documentsUsedThisMonth} / {usageMax} documentos enviados
+            {data.documentsUsedThisMonth} / {usageMaxLabel} documentos enviados
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
@@ -110,9 +111,9 @@ export default function DashboardPage() {
             role="progressbar"
             aria-valuenow={data.documentsUsedThisMonth}
             aria-valuemin={0}
-            aria-valuemax={usageMax}
+            aria-valuemax={usageMaxNum}
             aria-label="Uso do plano"
-            title={`${data.documentsUsedThisMonth} de ${usageMax} documentos`}
+            title={`${data.documentsUsedThisMonth} de ${usageMaxLabel} documentos`}
             className={`h-full rounded-full transition-all ${usagePct >= 90 ? 'bg-red-500' : usagePct >= 70 ? 'bg-yellow-500' : 'bg-blue-500'}`}
             style={{ width: `${Math.min(usagePct, 100)}%` }}
           />
