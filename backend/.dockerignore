@@ -1,0 +1,7 @@
+# Ignore test project and build artifacts
+**/bin/
+**/obj/
+HoleriteSign.Tests/
+**/.vs/
+**/node_modules/
+*.sln.DotSettings.user
