@@ -133,15 +133,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     restart: always
-    # Port exposed internally; Dokploy/Traefik routes traffic from the domain.
-    # For standalone (non-Dokploy) usage, uncomment:
-    # ports:
-    #   - "${FRONTEND_PORT:-80}:80"
     depends_on:
       api:
         condition: service_healthy
     networks:
       - hs-internal
+      - dokploy-network
 
 volumes:
   pgdata:
@@ -150,3 +147,5 @@ volumes:
 networks:
   hs-internal:
     driver: bridge
+  dokploy-network:
+    external: true
