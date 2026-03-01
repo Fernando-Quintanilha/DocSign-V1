@@ -8,7 +8,8 @@ COPY HoleriteSign.Infrastructure/HoleriteSign.Infrastructure.csproj HoleriteSign
 COPY HoleriteSign.Api/HoleriteSign.Api.csproj HoleriteSign.Api/
 RUN dotnet restore HoleriteSign.Api/HoleriteSign.Api.csproj
 
-# Copy everything and publish
+# Copy everything and publish (ARG busts cache when code changes)
+ARG CACHEBUST=1
 COPY . .
 RUN dotnet publish HoleriteSign.Api/HoleriteSign.Api.csproj \
     -c Release \
