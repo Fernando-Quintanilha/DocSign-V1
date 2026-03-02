@@ -81,7 +81,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        CACHEBUST: "${CACHEBUST:-13}"
+        CACHEBUST: "${CACHEBUST:-14}"
     restart: always
     depends_on:
       postgres:
@@ -188,7 +188,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        CACHEBUST: "${FRONTEND_CACHEBUST:-13}"
+        CACHEBUST: "${FRONTEND_CACHEBUST:-14}"
     restart: always
     depends_on:
       api:

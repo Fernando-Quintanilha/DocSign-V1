@@ -183,6 +183,59 @@ public class WhatsAppService
                     break;
                 }
             }
+
+            // 8. Check if Evolution container can reach WhatsApp's WebSocket server
+            // Test DNS resolution and TCP connectivity to WhatsApp's signaling servers
+            try
+            {
+                // Ask Evolution for its internal health/debug info
+                var healthResp = await _http.GetAsync($"{BaseUrl}/");
+                var healthBody = await healthResp.Content.ReadAsStringAsync();
+                results["evoHealth"] = healthBody;
+            }
+            catch (Exception ex)
+            {
+                results["evoHealthError"] = ex.Message;
+            }
+
+            // 9. Check connection state after all attempts  
+            try
+            {
+                var stateResp = await _http.GetAsync($"{BaseUrl}/instance/connectionState/{InstanceName}");
+                var stateBody = await stateResp.Content.ReadAsStringAsync();
+                results["finalConnectionState"] = stateBody;
+            }
+            catch (Exception ex)
+            {
+                results["finalStateError"] = ex.Message;
+            }
+
+            // 10. Try fetching QR via POST to connect endpoint (some versions need POST)
+            try
+            {
+                var postConnResp = await _http.PostAsync($"{BaseUrl}/instance/connect/{InstanceName}", null);
+                var postConnBody = await postConnResp.Content.ReadAsStringAsync();
+                results["connectViaPostStatus"] = (int)postConnResp.StatusCode;
+                results["connectViaPostBody"] = postConnBody.Length > 1000 ? postConnBody[..1000] : postConnBody;
+                results["connectViaPostHasQR"] = postConnBody.Contains("base64") && !postConnBody.Contains("\"base64\":null");
+            }
+            catch (Exception ex)
+            {
+                results["connectViaPostError"] = ex.Message;
+            }
+
+            // 11. Try /instance/connect without instance name and with query
+            try
+            {
+                var r2 = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}?number=");
+                var b2 = await r2.Content.ReadAsStringAsync();
+                results["connectWithQueryStatus"] = (int)r2.StatusCode;
+                results["connectWithQueryBody"] = b2.Length > 1000 ? b2[..1000] : b2;
+            }
+            catch (Exception ex)
+            {
+                results["connectWithQueryError"] = ex.Message;
+            }
         }
         catch (Exception ex)
         {
