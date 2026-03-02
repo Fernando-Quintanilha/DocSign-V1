@@ -1,6 +1,6 @@
 # ── Stage 1: Build ──────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
-LABEL build.version="v6-whatsapp-2026-03-02"
+LABEL build.version="v7-qrcode-fix-2026-03-01"
 WORKDIR /src
 
 # Copy csproj files first for layer caching

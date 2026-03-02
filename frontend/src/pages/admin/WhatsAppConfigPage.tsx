@@ -63,8 +63,9 @@ export default function WhatsAppConfigPage() {
     queryKey: ['whatsapp-qr'],
     queryFn: fetchWhatsAppQrCode,
     enabled: !isConnected && polling,
-    refetchInterval: !isConnected && polling ? 10000 : false,
-    retry: 2,
+    refetchInterval: !isConnected && polling ? 5000 : false,
+    retry: 5,
+    retryDelay: 2000,
   });
 
   // Effective QR: prefer polled qrData, fallback to create response QR
@@ -151,9 +152,14 @@ export default function WhatsAppConfigPage() {
               <button
                 onClick={handleConnect}
                 disabled={createMutation.isPending}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg"
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50"
               >
-                {createMutation.isPending ? 'Criando...' : 'Conectar WhatsApp'}
+                {createMutation.isPending ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    Aguardando QR Code...
+                  </span>
+                ) : 'Conectar WhatsApp'}
               </button>
             )}
           </div>

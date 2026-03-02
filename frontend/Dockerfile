@@ -1,6 +1,6 @@
 # ── Stage 1: Build ──────────────────────────────────────────
 FROM node:20-alpine AS build
-LABEL build.version="v6-whatsapp-2026-03-02"
+LABEL build.version="v7-qrcode-fix-2026-03-01"
 WORKDIR /app
 
 COPY package.json package-lock.json* ./

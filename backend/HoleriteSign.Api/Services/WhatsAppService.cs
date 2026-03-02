@@ -70,25 +70,37 @@ public class WhatsAppService
             // Parse QR from create response (flexible parsing)
             var result = ParseCreateResponse(createBody);
 
-            // If no QR in create response, try connect endpoint
+            // If no QR in create response, try connect endpoint with retries
             if (result.Qrcode?.Base64 == null)
             {
-                _logger.LogInformation("No QR in create response, fetching via connect endpoint...");
-                await Task.Delay(1500);
-                var qr = await GetQrCodeAsync();
-                if (qr?.Base64 != null)
+                _logger.LogInformation("No QR in create response, polling connect endpoint with retries...");
+                
+                // Retry up to 8 times with increasing delays (total ~20s)
+                for (int attempt = 1; attempt <= 8; attempt++)
                 {
-                    result.Qrcode = new EvolutionQrCode
+                    var delay = attempt <= 3 ? 2000 : 3000; // 2s for first 3, then 3s
+                    _logger.LogInformation("Waiting {Delay}ms before connect attempt {Attempt}/8...", delay, attempt);
+                    await Task.Delay(delay);
+                    
+                    var qr = await GetQrCodeAsync();
+                    if (qr?.Base64 != null)
                     {
-                        Base64 = qr.Base64,
-                        PairingCode = qr.PairingCode,
-                        Code = qr.Code,
-                    };
-                    _logger.LogInformation("Got QR from connect endpoint: base64 length={Len}", qr.Base64?.Length);
+                        result.Qrcode = new EvolutionQrCode
+                        {
+                            Base64 = qr.Base64,
+                            PairingCode = qr.PairingCode,
+                            Code = qr.Code,
+                        };
+                        _logger.LogInformation("Got QR from connect endpoint on attempt {Attempt}: base64 length={Len}", attempt, qr.Base64?.Length);
+                        break;
+                    }
+                    
+                    _logger.LogInformation("Attempt {Attempt}/8: No QR yet (base64 is null)", attempt);
                 }
-                else
+                
+                if (result.Qrcode?.Base64 == null)
                 {
-                    _logger.LogWarning("Connect endpoint also returned no QR");
+                    _logger.LogWarning("All 8 connect attempts returned no QR code");
                 }
             }
             else
