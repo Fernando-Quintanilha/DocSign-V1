@@ -9,8 +9,9 @@ COPY HoleriteSign.Infrastructure/HoleriteSign.Infrastructure.csproj HoleriteSign
 COPY HoleriteSign.Api/HoleriteSign.Api.csproj HoleriteSign.Api/
 RUN dotnet restore HoleriteSign.Api/HoleriteSign.Api.csproj
 
-# Copy everything and publish (ARG busts cache when code changes)
+# Force cache invalidation: RUN depends on CACHEBUST arg
 ARG CACHEBUST=1
+RUN echo "CACHEBUST=$CACHEBUST" > /tmp/.cachebust
 COPY . .
 RUN dotnet publish HoleriteSign.Api/HoleriteSign.Api.csproj \
     -c Release \

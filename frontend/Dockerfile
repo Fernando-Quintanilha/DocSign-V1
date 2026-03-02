@@ -6,7 +6,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 
+# Force cache invalidation: RUN depends on CACHEBUST arg
 ARG CACHEBUST=1
+RUN echo "CACHEBUST=$CACHEBUST" > /tmp/.cachebust
 COPY . .
 RUN npm run build
 
