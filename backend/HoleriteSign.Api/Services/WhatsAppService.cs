@@ -116,6 +116,79 @@ public class WhatsAppService
             results["apiContainerInternetError"] = ex.Message;
         }
 
+        // 6. Check if Evolution can reach WhatsApp web (via Evolution's internal check)
+        try
+        {
+            var response = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
+            var body = await response.Content.ReadAsStringAsync();
+            results["connectAttempt1"] = body.Length > 1000 ? body[..1000] : body;
+            
+            // If first attempt returns no QR, wait and retry
+            if (!body.Contains("base64") || body.Contains("\"base64\":null"))
+            {
+                await Task.Delay(3000);
+                response = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
+                body = await response.Content.ReadAsStringAsync();
+                results["connectAttempt2"] = body.Length > 1000 ? body[..1000] : body;
+            }
+        }
+        catch (Exception ex)
+        {
+            results["connectRetryError"] = ex.Message;
+        }
+
+        // 7. Full lifecycle test: delete → create → connect (with timing)
+        try
+        {
+            // Delete existing instance
+            var delResp = await _http.DeleteAsync($"{BaseUrl}/instance/delete/{InstanceName}");
+            var delBody = await delResp.Content.ReadAsStringAsync();
+            results["lifecycleDeleteStatus"] = (int)delResp.StatusCode;
+            results["lifecycleDeleteBody"] = delBody;
+
+            // Wait for cleanup
+            await Task.Delay(3000);
+
+            // Create fresh
+            var createPayload = new
+            {
+                instanceName = InstanceName,
+                qrcode = true,
+                integration = "WHATSAPP-BAILEYS",
+            };
+            var createJson = System.Text.Json.JsonSerializer.Serialize(createPayload);
+            var createContent = new StringContent(createJson, Encoding.UTF8, "application/json");
+            var createResp = await _http.PostAsync($"{BaseUrl}/instance/create", createContent);
+            var createBody = await createResp.Content.ReadAsStringAsync();
+            results["lifecycleCreateStatus"] = (int)createResp.StatusCode;
+            results["lifecycleCreateHasQR"] = createBody.Contains("base64") && !createBody.Contains("\"base64\":null") && !createBody.Contains("\"base64\":\"\"");
+            results["lifecycleCreateBody"] = createBody.Length > 1000 ? createBody[..1000] : createBody;
+
+            // Try connect immediately
+            for (int i = 0; i < 5; i++)
+            {
+                await Task.Delay(3000);
+                var connResp = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
+                var connBody = await connResp.Content.ReadAsStringAsync();
+                var hasQr = connBody.Contains("base64") && !connBody.Contains("\"base64\":null") && !connBody.Contains("\"base64\":\"\"");
+                results[$"lifecycleConnect_{i+1}_status"] = (int)connResp.StatusCode;
+                results[$"lifecycleConnect_{i+1}_hasQR"] = hasQr;
+                results[$"lifecycleConnect_{i+1}_bodyLen"] = connBody.Length;
+                results[$"lifecycleConnect_{i+1}_body"] = connBody.Length > 500 ? connBody[..500] : connBody;
+                
+                if (hasQr)
+                {
+                    results["lifecycleQRFound"] = true;
+                    results["lifecycleQRFoundAtAttempt"] = i + 1;
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            results["lifecycleError"] = ex.Message;
+        }
+
         return results;
     }
 
@@ -160,13 +233,25 @@ public class WhatsAppService
             // If no QR in create response, try connect endpoint with retries
             if (result.Qrcode?.Base64 == null)
             {
-                _logger.LogInformation("No QR in create response, polling connect endpoint with retries...");
+                _logger.LogInformation("No QR in create response, trying restart + connect approach...");
                 
-                // Retry up to 8 times with increasing delays (total ~20s)
-                for (int attempt = 1; attempt <= 8; attempt++)
+                // Try restart the instance to force Baileys to initialize
+                try
                 {
-                    var delay = attempt <= 3 ? 2000 : 3000; // 2s for first 3, then 3s
-                    _logger.LogInformation("Waiting {Delay}ms before connect attempt {Attempt}/8...", delay, attempt);
+                    var restartResp = await _http.PutAsync($"{BaseUrl}/instance/restart/{InstanceName}", null);
+                    var restartBody = await restartResp.Content.ReadAsStringAsync();
+                    _logger.LogInformation("Restart response: {Status} {Body}", restartResp.StatusCode, restartBody);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Restart failed, continuing with connect attempts...");
+                }
+
+                // Retry up to 10 times with delays (total ~30s)
+                for (int attempt = 1; attempt <= 10; attempt++)
+                {
+                    var delay = attempt <= 2 ? 3000 : 2000;
+                    _logger.LogInformation("Waiting {Delay}ms before connect attempt {Attempt}/10...", delay, attempt);
                     await Task.Delay(delay);
                     
                     var qr = await GetQrCodeAsync();
@@ -182,12 +267,12 @@ public class WhatsAppService
                         break;
                     }
                     
-                    _logger.LogInformation("Attempt {Attempt}/8: No QR yet (base64 is null)", attempt);
+                    _logger.LogInformation("Attempt {Attempt}/10: No QR yet (base64 is null)", attempt);
                 }
                 
                 if (result.Qrcode?.Base64 == null)
                 {
-                    _logger.LogWarning("All 8 connect attempts returned no QR code");
+                    _logger.LogWarning("All 10 connect attempts returned no QR code. Baileys may not be initializing properly.");
                 }
             }
             else
