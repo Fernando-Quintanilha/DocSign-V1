@@ -81,7 +81,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        CACHEBUST: "${CACHEBUST:-15}"
+        CACHEBUST: "${CACHEBUST:-16}"
     restart: always
     depends_on:
       postgres:
@@ -145,32 +145,32 @@ services:
       SERVER_URL: ${EVOLUTION_SERVER_URL:-http://evolution:8080}
       AUTHENTICATION_TYPE: apikey
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-CHANGE_ME_IN_PRODUCTION}
-      DATABASE_ENABLED: "false"
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      DATABASE_ENABLED: "true"
       DATABASE_PROVIDER: postgresql
       DATABASE_CONNECTION_URI: ${EVOLUTION_DATABASE_URI:-postgresql://holeritesign:changeme@postgres:5432/holeritesign?schema=evolution}
       DATABASE_CONNECTION_CLIENT_NAME: evolution
-      DATABASE_SAVE_DATA_INSTANCE: "false"
-      DATABASE_SAVE_DATA_NEW_MESSAGE: "false"
-      DATABASE_SAVE_MESSAGE_UPDATE: "false"
-      DATABASE_SAVE_DATA_CONTACTS: "false"
-      DATABASE_SAVE_DATA_CHATS: "false"
-      DATABASE_SAVE_DATA_LABELS: "false"
-      DATABASE_SAVE_DATA_HISTORIC: "false"
-      CACHE_REDIS_ENABLED: "false"
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      DATABASE_SAVE_DATA_LABELS: "true"
+      DATABASE_SAVE_DATA_HISTORIC: "true"
+      CACHE_REDIS_ENABLED: "true"
       CACHE_REDIS_URI: ${EVOLUTION_REDIS_URI:-redis://:changeme@redis:6379/1}
       CACHE_REDIS_PREFIX_KEY: "evolution"
       CACHE_REDIS_SAVE_INSTANCES: "false"
       CACHE_LOCAL_ENABLED: "false"
       LOG_LEVEL: "ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS"
+      LOG_BAILEYS: "info"
+      LOG_COLOR: "true"
       DEL_INSTANCE: "false"
-      STORE_MESSAGES: "true"
-      STORE_MESSAGE_UP: "true"
-      STORE_CONTACTS: "true"
-      STORE_CHATS: "true"
       QRCODE_LIMIT: 30
+      QRCODE_COLOR: "#175197"
       CONFIG_SESSION_PHONE_CLIENT: "HoleriteSign"
       CONFIG_SESSION_PHONE_NAME: "Chrome"
-      QRCODE_COLOR: "#000000"
+      LANGUAGE: "pt-BR"
     depends_on:
       postgres:
         condition: service_healthy
@@ -192,7 +192,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        CACHEBUST: "${FRONTEND_CACHEBUST:-15}"
+        CACHEBUST: "${FRONTEND_CACHEBUST:-16}"
     restart: always
     depends_on:
       api:
