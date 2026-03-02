@@ -631,8 +631,22 @@ public class WhatsAppService
                 throw new InvalidOperationException($"Falha ao enviar WhatsApp: {response.StatusCode}");
             }
 
-            _logger.LogInformation("WhatsApp message sent to {Phone}", normalizedPhone);
-            return JsonSerializer.Deserialize<EvolutionSendMessageResponse>(body, JsonOpts);
+            _logger.LogInformation("WhatsApp message sent to {Phone}. Response: {Body}", normalizedPhone, body.Length > 500 ? body[..500] : body);
+
+            try
+            {
+                return JsonSerializer.Deserialize<EvolutionSendMessageResponse>(body, JsonOpts);
+            }
+            catch (JsonException jsonEx)
+            {
+                // Message was sent successfully (HTTP 2xx) but response format differs
+                _logger.LogWarning(jsonEx, "WhatsApp message sent but response deserialization failed for {Phone}", normalizedPhone);
+                return new EvolutionSendMessageResponse
+                {
+                    Key = new EvolutionMessageKey { Id = "sent-parse-error" },
+                    Status = "SENT"
+                };
+            }
         }
         catch (HttpRequestException ex)
         {
@@ -731,10 +745,16 @@ public class EvolutionSendMessageResponse
     public object? Message { get; set; }
 
     [JsonPropertyName("messageTimestamp")]
-    public string? MessageTimestamp { get; set; }
+    public JsonElement? MessageTimestamp { get; set; }
 
     [JsonPropertyName("status")]
     public string? Status { get; set; }
+
+    [JsonPropertyName("messageType")]
+    public string? MessageType { get; set; }
+
+    [JsonPropertyName("source")]
+    public string? Source { get; set; }
 }
 
 public class EvolutionMessageKey
