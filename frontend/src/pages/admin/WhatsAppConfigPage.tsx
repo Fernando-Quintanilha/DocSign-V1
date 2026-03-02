@@ -7,6 +7,7 @@ export default function WhatsAppConfigPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [polling, setPolling] = useState(false);
+  const [initialQr, setInitialQr] = useState<{ base64: string | null; pairingCode: string | null } | null>(null);
 
   // Fetch connection status
   const { data: status, isLoading: statusLoading } = useQuery({
@@ -26,16 +27,23 @@ export default function WhatsAppConfigPage() {
 
   // Stop polling when connected
   useEffect(() => {
-    if (isConnected) setPolling(false);
+    if (isConnected) {
+      setPolling(false);
+      setInitialQr(null);
+    }
   }, [isConnected]);
 
   // Create instance mutation
   const createMutation = useMutation({
     mutationFn: createWhatsAppInstance,
-    onSuccess: () => {
+    onSuccess: (data) => {
       setSuccess('Instância criada com sucesso!');
       setError('');
       setPolling(true);
+      // Capture QR code from create response
+      if (data?.qrcode?.base64) {
+        setInitialQr({ base64: data.qrcode.base64, pairingCode: data.qrcode.pairingCode });
+      }
       queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
       queryClient.invalidateQueries({ queryKey: ['whatsapp-qr'] });
     },
@@ -54,6 +62,9 @@ export default function WhatsAppConfigPage() {
     enabled: !isConnected && (polling || hasInstance),
     refetchInterval: !isConnected && (polling || hasInstance) ? 15000 : false,
   });
+
+  // Use QR from create response as fallback if qrData has no base64
+  const effectiveQr = qrData?.base64 ? qrData : initialQr ? { base64: initialQr.base64, pairingCode: initialQr.pairingCode } : qrData;
 
   // Logout mutation
   const logoutMutation = useMutation({
@@ -148,22 +159,22 @@ export default function WhatsAppConfigPage() {
             Abra o WhatsApp no seu celular → Menu (⋮) → Dispositivos conectados → Conectar dispositivo → Escaneie o QR code abaixo.
           </p>
 
-          {qrLoading ? (
+          {qrLoading && !effectiveQr?.base64 ? (
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin h-8 w-8 border-4 border-gray-300 border-t-green-600 rounded-full" />
             </div>
-          ) : qrData?.base64 ? (
+          ) : effectiveQr?.base64 ? (
             <div className="flex flex-col items-center gap-4">
               <img
-                src={qrData.base64.startsWith('data:') ? qrData.base64 : `data:image/png;base64,${qrData.base64}`}
+                src={effectiveQr.base64.startsWith('data:') ? effectiveQr.base64 : `data:image/png;base64,${effectiveQr.base64}`}
                 alt="WhatsApp QR Code"
                 className="w-64 h-64 border rounded-lg"
               />
-              {qrData.pairingCode && (
+              {effectiveQr.pairingCode && (
                 <div className="text-center">
                   <p className="text-sm text-gray-500">Ou use o código de pareamento:</p>
                   <p className="text-2xl font-mono font-bold text-gray-900 tracking-widest mt-1">
-                    {qrData.pairingCode}
+                    {effectiveQr.pairingCode}
                   </p>
                 </div>
               )}

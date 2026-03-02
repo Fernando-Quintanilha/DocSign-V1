@@ -85,8 +85,15 @@ public class NotificationsController : ControllerBase
     [HttpGet("whatsapp/qrcode")]
     public async Task<IActionResult> GetWhatsAppQrCode()
     {
+        _logger.LogInformation("GetWhatsAppQrCode called");
         var result = await _whatsAppService.GetQrCodeAsync();
-        if (result == null) return StatusCode(502, new { message = "Falha ao obter QR code. Verifique se a instância foi criada." });
+        if (result == null)
+        {
+            _logger.LogWarning("QR code result is null");
+            return StatusCode(502, new { message = "Falha ao obter QR code. Verifique se a instância foi criada." });
+        }
+        _logger.LogInformation("QR code result: base64={HasBase64}, pairingCode={PairingCode}", 
+            result.Base64 != null, result.PairingCode);
         return Ok(result);
     }
 

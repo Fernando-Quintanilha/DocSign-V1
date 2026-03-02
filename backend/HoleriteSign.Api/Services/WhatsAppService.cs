@@ -36,81 +36,38 @@ public class WhatsAppService
 
     /// <summary>
     /// Create a new WhatsApp instance in Evolution API.
-    /// If instance already exists, connects to it instead.
+    /// If instance already exists, deletes it and creates fresh to get a new QR code.
     /// Returns (response, errorMessage) tuple.
     /// </summary>
     public async Task<(EvolutionCreateInstanceResponse? Result, string? Error)> CreateInstanceAsync()
     {
         SetHeaders();
 
-        var payload = new
-        {
-            instanceName = InstanceName,
-            qrcode = true,
-            integration = "WHATSAPP-BAILEYS",
-            reject_call = false,
-            groups_ignore = true,
-            always_online = false,
-            read_messages = false,
-            read_status = false,
-        };
-
-        var json = JsonSerializer.Serialize(payload);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        _logger.LogInformation("Creating Evolution instance at {BaseUrl}/instance/create", BaseUrl);
+        _logger.LogInformation("Creating Evolution instance '{Instance}' at {BaseUrl}", InstanceName, BaseUrl);
 
         try
         {
-            var response = await _http.PostAsync($"{BaseUrl}/instance/create", content);
-            var body = await response.Content.ReadAsStringAsync();
+            // First try to create
+            var (createResult, createBody, createStatus) = await DoCreateInstance();
 
-            _logger.LogInformation("Evolution create response: {Status} {Body}", response.StatusCode, body);
-
-            // Instance already exists — just connect to it and get QR code
-            if ((int)response.StatusCode == 403 && body.Contains("already in use"))
+            // Instance already exists → delete it and create fresh
+            if (createStatus == 403 && createBody.Contains("already in use"))
             {
-                _logger.LogInformation("Instance '{Instance}' already exists, connecting...", InstanceName);
-                var qr = await GetQrCodeAsync();
-                if (qr != null)
-                {
-                    // Build a response that mirrors a fresh create
-                    return (new EvolutionCreateInstanceResponse
-                    {
-                        Instance = new EvolutionInstanceInfo
-                        {
-                            InstanceName = InstanceName,
-                            Status = "created",
-                        },
-                        Qrcode = qr.Base64 != null ? new EvolutionQrCode
-                        {
-                            Base64 = qr.Base64,
-                            PairingCode = qr.PairingCode,
-                            Code = qr.Code,
-                        } : null,
-                    }, null);
-                }
-
-                // If QR also failed, check status
-                var status = await GetConnectionStatusAsync();
-                return (new EvolutionCreateInstanceResponse
-                {
-                    Instance = new EvolutionInstanceInfo
-                    {
-                        InstanceName = InstanceName,
-                        Status = status?.State ?? "exists",
-                    },
-                }, null);
+                _logger.LogInformation("Instance '{Instance}' already exists, deleting and recreating...", InstanceName);
+                await DeleteInstanceAsync();
+                // Small delay to let Evolution clean up
+                await Task.Delay(1000);
+                (createResult, createBody, createStatus) = await DoCreateInstance();
             }
 
-            if (!response.IsSuccessStatusCode)
+            if (createStatus < 200 || createStatus >= 300)
             {
-                _logger.LogWarning("Evolution API create instance failed: {Status} {Body}", response.StatusCode, body);
-                return (null, $"Evolution API retornou {(int)response.StatusCode}: {body}");
+                _logger.LogWarning("Evolution create failed after retry: {Status} {Body}", createStatus, createBody);
+                return (null, $"Evolution API retornou {createStatus}: {createBody}");
             }
 
-            var result = JsonSerializer.Deserialize<EvolutionCreateInstanceResponse>(body, JsonOpts);
-            return (result, null);
+            _logger.LogInformation("Evolution create success: {Body}", createBody);
+            return (createResult, null);
         }
         catch (HttpRequestException ex)
         {
@@ -129,6 +86,59 @@ public class WhatsAppService
         }
     }
 
+    private async Task<(EvolutionCreateInstanceResponse? Result, string Body, int Status)> DoCreateInstance()
+    {
+        SetHeaders();
+
+        var payload = new
+        {
+            instanceName = InstanceName,
+            qrcode = true,
+            integration = "WHATSAPP-BAILEYS",
+            reject_call = false,
+            groups_ignore = true,
+            always_online = false,
+            read_messages = false,
+            read_status = false,
+        };
+
+        var json = JsonSerializer.Serialize(payload);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var response = await _http.PostAsync($"{BaseUrl}/instance/create", content);
+        var body = await response.Content.ReadAsStringAsync();
+        var status = (int)response.StatusCode;
+
+        if (response.IsSuccessStatusCode)
+        {
+            var result = JsonSerializer.Deserialize<EvolutionCreateInstanceResponse>(body, JsonOpts);
+            return (result, body, status);
+        }
+
+        return (null, body, status);
+    }
+
+    /// <summary>
+    /// Delete a WhatsApp instance from Evolution API.
+    /// </summary>
+    public async Task<bool> DeleteInstanceAsync()
+    {
+        SetHeaders();
+
+        try
+        {
+            var response = await _http.DeleteAsync($"{BaseUrl}/instance/delete/{InstanceName}");
+            var body = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("Evolution delete instance: {Status} {Body}", response.StatusCode, body);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete Evolution API instance");
+            return false;
+        }
+    }
+
     /// <summary>
     /// Get the QR code for connecting WhatsApp.
     /// </summary>
@@ -141,13 +151,63 @@ public class WhatsAppService
             var response = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
             var body = await response.Content.ReadAsStringAsync();
 
+            _logger.LogInformation("Evolution QR response: {Status} Body={Body}", response.StatusCode, body);
+
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Evolution API QR code failed: {Status} {Body}", response.StatusCode, body);
                 return null;
             }
 
-            return JsonSerializer.Deserialize<EvolutionQrCodeResponse>(body, JsonOpts);
+            // Try standard deserialization
+            var result = JsonSerializer.Deserialize<EvolutionQrCodeResponse>(body, JsonOpts);
+            if (result?.Base64 != null) return result;
+
+            // Evolution v2 wraps QR inside root - try parsing raw JSON to find base64
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+
+            string? base64 = null;
+            string? pairingCode = null;
+            string? code = null;
+
+            if (root.TryGetProperty("base64", out var b64Prop))
+                base64 = b64Prop.GetString();
+            if (root.TryGetProperty("pairingCode", out var pcProp))
+                pairingCode = pcProp.GetString();
+            if (root.TryGetProperty("code", out var codeProp))
+                code = codeProp.GetString();
+
+            // Some versions nest under "qrcode"
+            if (base64 == null && root.TryGetProperty("qrcode", out var qrObj))
+            {
+                if (qrObj.ValueKind == JsonValueKind.Object)
+                {
+                    if (qrObj.TryGetProperty("base64", out var qrB64))
+                        base64 = qrB64.GetString();
+                    if (qrObj.TryGetProperty("pairingCode", out var qrPc))
+                        pairingCode = qrPc.GetString();
+                    if (qrObj.TryGetProperty("code", out var qrCode))
+                        code = qrCode.GetString();
+                }
+                else if (qrObj.ValueKind == JsonValueKind.String)
+                {
+                    base64 = qrObj.GetString();
+                }
+            }
+
+            if (base64 != null)
+            {
+                return new EvolutionQrCodeResponse
+                {
+                    Base64 = base64,
+                    PairingCode = pairingCode,
+                    Code = code,
+                };
+            }
+
+            _logger.LogWarning("QR response parsed but no base64 found. Body: {Body}", body);
+            return result; // Return whatever we got
         }
         catch (Exception ex)
         {
