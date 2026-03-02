@@ -81,7 +81,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        CACHEBUST: "${CACHEBUST:-14}"
+        CACHEBUST: "${CACHEBUST:-15}"
     restart: always
     depends_on:
       postgres:
@@ -145,18 +145,22 @@ services:
       SERVER_URL: ${EVOLUTION_SERVER_URL:-http://evolution:8080}
       AUTHENTICATION_TYPE: apikey
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-CHANGE_ME_IN_PRODUCTION}
-      DATABASE_ENABLED: "true"
+      DATABASE_ENABLED: "false"
       DATABASE_PROVIDER: postgresql
       DATABASE_CONNECTION_URI: ${EVOLUTION_DATABASE_URI:-postgresql://holeritesign:changeme@postgres:5432/holeritesign?schema=evolution}
       DATABASE_CONNECTION_CLIENT_NAME: evolution
-      DATABASE_SAVE_DATA_INSTANCE: "true"
-      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
-      DATABASE_SAVE_MESSAGE_UPDATE: "true"
-      DATABASE_SAVE_DATA_CONTACTS: "true"
-      DATABASE_SAVE_DATA_CHATS: "true"
-      CACHE_REDIS_ENABLED: "true"
+      DATABASE_SAVE_DATA_INSTANCE: "false"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "false"
+      DATABASE_SAVE_MESSAGE_UPDATE: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "false"
+      DATABASE_SAVE_DATA_CHATS: "false"
+      DATABASE_SAVE_DATA_LABELS: "false"
+      DATABASE_SAVE_DATA_HISTORIC: "false"
+      CACHE_REDIS_ENABLED: "false"
       CACHE_REDIS_URI: ${EVOLUTION_REDIS_URI:-redis://:changeme@redis:6379/1}
       CACHE_REDIS_PREFIX_KEY: "evolution"
+      CACHE_REDIS_SAVE_INSTANCES: "false"
+      CACHE_LOCAL_ENABLED: "false"
       LOG_LEVEL: "ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS"
       DEL_INSTANCE: "false"
       STORE_MESSAGES: "true"
@@ -188,7 +192,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        CACHEBUST: "${FRONTEND_CACHEBUST:-14}"
+        CACHEBUST: "${FRONTEND_CACHEBUST:-15}"
     restart: always
     depends_on:
       api:
