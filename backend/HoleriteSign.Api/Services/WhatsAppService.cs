@@ -37,9 +37,9 @@ public class WhatsAppService
     /// <summary>
     /// Create a new WhatsApp instance in Evolution API.
     /// If instance already exists, deletes it and creates fresh to get a new QR code.
-    /// Returns (response, errorMessage) tuple.
+    /// Returns (response, errorMessage, rawBody) tuple.
     /// </summary>
-    public async Task<(EvolutionCreateInstanceResponse? Result, string? Error)> CreateInstanceAsync()
+    public async Task<(EvolutionCreateInstanceResponse? Result, string? Error, string? RawBody)> CreateInstanceAsync()
     {
         SetHeaders();
 
@@ -55,34 +55,63 @@ public class WhatsAppService
             {
                 _logger.LogInformation("Instance '{Instance}' already exists, deleting and recreating...", InstanceName);
                 await DeleteInstanceAsync();
-                // Small delay to let Evolution clean up
-                await Task.Delay(1000);
+                await Task.Delay(2000);
                 (createResult, createBody, createStatus) = await DoCreateInstance();
             }
 
             if (createStatus < 200 || createStatus >= 300)
             {
                 _logger.LogWarning("Evolution create failed after retry: {Status} {Body}", createStatus, createBody);
-                return (null, $"Evolution API retornou {createStatus}: {createBody}");
+                return (null, $"Evolution API retornou {createStatus}: {createBody}", createBody);
             }
 
             _logger.LogInformation("Evolution create success: {Body}", createBody);
-            return (createResult, null);
+
+            // Parse QR from create response (flexible parsing)
+            var result = ParseCreateResponse(createBody);
+
+            // If no QR in create response, try connect endpoint
+            if (result.Qrcode?.Base64 == null)
+            {
+                _logger.LogInformation("No QR in create response, fetching via connect endpoint...");
+                await Task.Delay(1500);
+                var qr = await GetQrCodeAsync();
+                if (qr?.Base64 != null)
+                {
+                    result.Qrcode = new EvolutionQrCode
+                    {
+                        Base64 = qr.Base64,
+                        PairingCode = qr.PairingCode,
+                        Code = qr.Code,
+                    };
+                    _logger.LogInformation("Got QR from connect endpoint: base64 length={Len}", qr.Base64?.Length);
+                }
+                else
+                {
+                    _logger.LogWarning("Connect endpoint also returned no QR");
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Got QR from create response: base64 length={Len}", result.Qrcode.Base64?.Length);
+            }
+
+            return (result, null, createBody);
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Cannot reach Evolution API at {BaseUrl}", BaseUrl);
-            return (null, $"Não foi possível conectar ao Evolution API em {BaseUrl}: {ex.Message}");
+            return (null, $"Não foi possível conectar ao Evolution API em {BaseUrl}: {ex.Message}", null);
         }
         catch (TaskCanceledException ex)
         {
             _logger.LogError(ex, "Evolution API request timed out");
-            return (null, "Timeout ao conectar com Evolution API. O serviço pode estar iniciando.");
+            return (null, "Timeout ao conectar com Evolution API. O serviço pode estar iniciando.", null);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create Evolution API instance");
-            return (null, $"Erro inesperado: {ex.Message}");
+            return (null, $"Erro inesperado: {ex.Message}", null);
         }
     }
 
@@ -116,6 +145,77 @@ public class WhatsAppService
         }
 
         return (null, body, status);
+    }
+
+    /// <summary>
+    /// Flexibly parse the create-instance response from Evolution API.
+    /// Handles different response shapes across Evolution API versions.
+    /// </summary>
+    private EvolutionCreateInstanceResponse ParseCreateResponse(string body)
+    {
+        // Try standard deserialization first
+        var result = JsonSerializer.Deserialize<EvolutionCreateInstanceResponse>(body, JsonOpts);
+        if (result == null)
+            result = new EvolutionCreateInstanceResponse();
+
+        result.RawBody = body;
+
+        // If standard parsing got the QR, we're done
+        if (result.Qrcode?.Base64 != null)
+            return result;
+
+        // Try flexible parsing with JsonDocument
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+
+            // Look for base64 at root level
+            string? base64 = null;
+            string? pairingCode = null;
+            string? code = null;
+
+            if (root.TryGetProperty("base64", out var b64Prop))
+                base64 = b64Prop.GetString();
+            if (root.TryGetProperty("pairingCode", out var pcProp))
+                pairingCode = pcProp.GetString();
+            if (root.TryGetProperty("code", out var codeProp) && codeProp.ValueKind == JsonValueKind.String)
+                code = codeProp.GetString();
+
+            // Check nested qrcode object
+            if (base64 == null && root.TryGetProperty("qrcode", out var qrObj))
+            {
+                if (qrObj.ValueKind == JsonValueKind.Object)
+                {
+                    if (qrObj.TryGetProperty("base64", out var qrB64))
+                        base64 = qrB64.GetString();
+                    if (qrObj.TryGetProperty("pairingCode", out var qrPc))
+                        pairingCode = qrPc.GetString();
+                    if (qrObj.TryGetProperty("code", out var qrCode))
+                        code = qrCode.GetString();
+                }
+                else if (qrObj.ValueKind == JsonValueKind.String)
+                {
+                    base64 = qrObj.GetString();
+                }
+            }
+
+            if (base64 != null)
+            {
+                result.Qrcode = new EvolutionQrCode
+                {
+                    Base64 = base64,
+                    PairingCode = pairingCode,
+                    Code = code,
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to flexibly parse create response");
+        }
+
+        return result;
     }
 
     /// <summary>
