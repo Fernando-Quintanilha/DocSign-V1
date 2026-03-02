@@ -81,7 +81,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        CACHEBUST: "${CACHEBUST:-12}"
+        CACHEBUST: "${CACHEBUST:-13}"
     restart: always
     depends_on:
       postgres:
@@ -135,15 +135,18 @@ services:
 
   # ── Evolution API (WhatsApp) ───────────────────────────────
   evolution:
-    image: atendai/evolution-api:v2.2.3
+    image: atendai/evolution-api:v2.1.1
     restart: always
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     environment:
+      DOCKER_ENV: "true"
       SERVER_URL: ${EVOLUTION_SERVER_URL:-http://evolution:8080}
       AUTHENTICATION_TYPE: apikey
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-CHANGE_ME_IN_PRODUCTION}
       DATABASE_ENABLED: "true"
       DATABASE_PROVIDER: postgresql
-      # Use a dedicated env var to avoid @ in password breaking the URI
       DATABASE_CONNECTION_URI: ${EVOLUTION_DATABASE_URI:-postgresql://holeritesign:changeme@postgres:5432/holeritesign?schema=evolution}
       DATABASE_CONNECTION_CLIENT_NAME: evolution
       DATABASE_SAVE_DATA_INSTANCE: "true"
@@ -153,6 +156,7 @@ services:
       DATABASE_SAVE_DATA_CHATS: "true"
       CACHE_REDIS_ENABLED: "true"
       CACHE_REDIS_URI: ${EVOLUTION_REDIS_URI:-redis://:changeme@redis:6379/1}
+      CACHE_REDIS_PREFIX_KEY: "evolution"
       LOG_LEVEL: "ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS"
       DEL_INSTANCE: "false"
       STORE_MESSAGES: "true"
@@ -162,6 +166,7 @@ services:
       QRCODE_LIMIT: 30
       CONFIG_SESSION_PHONE_CLIENT: "HoleriteSign"
       CONFIG_SESSION_PHONE_NAME: "Chrome"
+      QRCODE_COLOR: "#000000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -183,7 +188,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        CACHEBUST: "${FRONTEND_CACHEBUST:-12}"
+        CACHEBUST: "${FRONTEND_CACHEBUST:-13}"
     restart: always
     depends_on:
       api:
