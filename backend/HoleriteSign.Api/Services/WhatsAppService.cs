@@ -327,10 +327,14 @@ public class EvolutionCreateInstanceResponse
     public EvolutionInstanceInfo? Instance { get; set; }
 
     [JsonPropertyName("hash")]
-    public string? Hash { get; set; }
+    public JsonElement? Hash { get; set; }
 
     [JsonPropertyName("qrcode")]
     public EvolutionQrCode? Qrcode { get; set; }
+
+    /// <summary>Raw JSON body from Evolution API for debugging.</summary>
+    [JsonIgnore]
+    public string? RawBody { get; set; }
 }
 
 public class EvolutionInstanceInfo
