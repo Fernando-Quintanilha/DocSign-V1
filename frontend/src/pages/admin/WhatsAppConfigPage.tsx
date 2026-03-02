@@ -17,6 +17,13 @@ export default function WhatsAppConfigPage() {
 
   const isConnected = status?.state === 'open';
 
+  // Start polling automatically if instance exists but is disconnected
+  useEffect(() => {
+    if (status?.instance?.instanceName && !isConnected && !polling) {
+      setPolling(true);
+    }
+  }, [status, isConnected, polling]);
+
   // Stop polling when connected
   useEffect(() => {
     if (isConnected) setPolling(false);
@@ -39,12 +46,13 @@ export default function WhatsAppConfigPage() {
     },
   });
 
-  // QR code query (only when not connected)
+  // QR code query (when not connected and instance exists or polling)
+  const hasInstance = !!status?.instance?.instanceName;
   const { data: qrData, isLoading: qrLoading, refetch: refetchQr } = useQuery({
     queryKey: ['whatsapp-qr'],
     queryFn: fetchWhatsAppQrCode,
-    enabled: !isConnected && polling,
-    refetchInterval: polling && !isConnected ? 15000 : false,
+    enabled: !isConnected && (polling || hasInstance),
+    refetchInterval: !isConnected && (polling || hasInstance) ? 15000 : false,
   });
 
   // Logout mutation
@@ -132,8 +140,8 @@ export default function WhatsAppConfigPage() {
         )}
       </div>
 
-      {/* QR Code Card */}
-      {!isConnected && polling && (
+      {/* QR Code Card - show when not connected and instance exists or polling */}
+      {!isConnected && (polling || status?.instance?.instanceName) && (
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Escaneie o QR Code</h2>
           <p className="text-sm text-gray-500 mb-4">

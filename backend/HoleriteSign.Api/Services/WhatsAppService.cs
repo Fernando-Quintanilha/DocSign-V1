@@ -36,6 +36,7 @@ public class WhatsAppService
 
     /// <summary>
     /// Create a new WhatsApp instance in Evolution API.
+    /// If instance already exists, connects to it instead.
     /// Returns (response, errorMessage) tuple.
     /// </summary>
     public async Task<(EvolutionCreateInstanceResponse? Result, string? Error)> CreateInstanceAsync()
@@ -65,6 +66,42 @@ public class WhatsAppService
             var body = await response.Content.ReadAsStringAsync();
 
             _logger.LogInformation("Evolution create response: {Status} {Body}", response.StatusCode, body);
+
+            // Instance already exists — just connect to it and get QR code
+            if ((int)response.StatusCode == 403 && body.Contains("already in use"))
+            {
+                _logger.LogInformation("Instance '{Instance}' already exists, connecting...", InstanceName);
+                var qr = await GetQrCodeAsync();
+                if (qr != null)
+                {
+                    // Build a response that mirrors a fresh create
+                    return (new EvolutionCreateInstanceResponse
+                    {
+                        Instance = new EvolutionInstanceInfo
+                        {
+                            InstanceName = InstanceName,
+                            Status = "created",
+                        },
+                        Qrcode = qr.Base64 != null ? new EvolutionQrCode
+                        {
+                            Base64 = qr.Base64,
+                            PairingCode = qr.PairingCode,
+                            Code = qr.Code,
+                        } : null,
+                    }, null);
+                }
+
+                // If QR also failed, check status
+                var status = await GetConnectionStatusAsync();
+                return (new EvolutionCreateInstanceResponse
+                {
+                    Instance = new EvolutionInstanceInfo
+                    {
+                        InstanceName = InstanceName,
+                        Status = status?.State ?? "exists",
+                    },
+                }, null);
+            }
 
             if (!response.IsSuccessStatusCode)
             {
