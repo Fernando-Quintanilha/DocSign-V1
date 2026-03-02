@@ -121,6 +121,14 @@ public class NotificationsController : ControllerBase
         return ok ? Ok(new { message = "WhatsApp desconectado." }) : StatusCode(502, new { message = "Falha ao desconectar." });
     }
 
+    /// <summary>GET /api/notifications/whatsapp/diagnostic — Debug Evolution API connectivity</summary>
+    [HttpGet("whatsapp/diagnostic")]
+    public async Task<IActionResult> WhatsAppDiagnostic()
+    {
+        var diag = await _whatsAppService.RunDiagnosticAsync();
+        return Ok(diag);
+    }
+
     /// <summary>POST /api/notifications/webhook/evolution — Evolution API delivery webhooks (no auth)</summary>
     [HttpPost("webhook/evolution")]
     [AllowAnonymous]

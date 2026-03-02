@@ -32,6 +32,93 @@ public class WhatsAppService
         _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }
 
+    // ── Diagnostics ──────────────────────────────────────────
+
+    /// <summary>
+    /// Run comprehensive diagnostic checks on Evolution API.
+    /// </summary>
+    public async Task<object> RunDiagnosticAsync()
+    {
+        SetHeaders();
+        var results = new Dictionary<string, object?>();
+        results["timestamp"] = DateTime.UtcNow.ToString("o");
+        results["baseUrl"] = BaseUrl;
+        results["instanceName"] = InstanceName;
+
+        // 1. Check if Evolution API is reachable
+        try
+        {
+            var response = await _http.GetAsync($"{BaseUrl}/");
+            results["evoReachable"] = true;
+            results["evoStatus"] = (int)response.StatusCode;
+            var body = await response.Content.ReadAsStringAsync();
+            results["evoRootResponse"] = body.Length > 500 ? body[..500] : body;
+        }
+        catch (Exception ex)
+        {
+            results["evoReachable"] = false;
+            results["evoError"] = ex.Message;
+        }
+
+        // 2. Fetch all instances
+        try
+        {
+            var response = await _http.GetAsync($"{BaseUrl}/instance/fetchInstances");
+            var body = await response.Content.ReadAsStringAsync();
+            results["fetchInstancesStatus"] = (int)response.StatusCode;
+            results["fetchInstancesBody"] = body.Length > 2000 ? body[..2000] : body;
+        }
+        catch (Exception ex)
+        {
+            results["fetchInstancesError"] = ex.Message;
+        }
+
+        // 3. Get connection state
+        try
+        {
+            var response = await _http.GetAsync($"{BaseUrl}/instance/connectionState/{InstanceName}");
+            var body = await response.Content.ReadAsStringAsync();
+            results["connectionStateStatus"] = (int)response.StatusCode;
+            results["connectionStateBody"] = body;
+        }
+        catch (Exception ex)
+        {
+            results["connectionStateError"] = ex.Message;
+        }
+
+        // 4. Try connect endpoint (this is what generates QR)
+        try
+        {
+            var response = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
+            var body = await response.Content.ReadAsStringAsync();
+            results["connectStatus"] = (int)response.StatusCode;
+            results["connectBodyLength"] = body.Length;
+            // Check if base64 is present
+            results["connectHasBase64"] = body.Contains("base64") && !body.Contains("\"base64\":null");
+            results["connectBody"] = body.Length > 3000 ? body[..3000] : body;
+        }
+        catch (Exception ex)
+        {
+            results["connectError"] = ex.Message;
+        }
+
+        // 5. Check internet access from API container
+        try
+        {
+            using var testHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var response = await testHttp.GetAsync("https://web.whatsapp.com");
+            results["apiContainerInternetAccess"] = true;
+            results["whatsappWebStatus"] = (int)response.StatusCode;
+        }
+        catch (Exception ex)
+        {
+            results["apiContainerInternetAccess"] = false;
+            results["apiContainerInternetError"] = ex.Message;
+        }
+
+        return results;
+    }
+
     // ── Instance Management ────────────────────────────────
 
     /// <summary>
