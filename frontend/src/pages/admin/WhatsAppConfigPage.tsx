@@ -33,7 +33,8 @@ export default function WhatsAppConfigPage() {
       queryClient.invalidateQueries({ queryKey: ['whatsapp-qr'] });
     },
     onError: (err: any) => {
-      setError(err.response?.data?.message || 'Erro ao criar instância');
+      const msg = err.response?.data?.message || err.message || 'Erro ao criar instância';
+      setError(`Falha ao criar instância WhatsApp: ${msg}`);
       setSuccess('');
     },
   });

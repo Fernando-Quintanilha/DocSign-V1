@@ -72,8 +72,12 @@ public class NotificationsController : ControllerBase
     [HttpPost("whatsapp/create-instance")]
     public async Task<IActionResult> CreateWhatsAppInstance()
     {
-        var result = await _whatsAppService.CreateInstanceAsync();
-        if (result == null) return StatusCode(502, new { message = "Falha ao criar instância WhatsApp." });
+        var (result, error) = await _whatsAppService.CreateInstanceAsync();
+        if (result == null)
+        {
+            _logger.LogWarning("WhatsApp create-instance failed: {Error}", error);
+            return StatusCode(502, new { message = error ?? "Falha ao criar instância WhatsApp." });
+        }
         return Ok(result);
     }
 

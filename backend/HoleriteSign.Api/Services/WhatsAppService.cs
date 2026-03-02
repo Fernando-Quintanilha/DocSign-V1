@@ -36,8 +36,9 @@ public class WhatsAppService
 
     /// <summary>
     /// Create a new WhatsApp instance in Evolution API.
+    /// Returns (response, errorMessage) tuple.
     /// </summary>
-    public async Task<EvolutionCreateInstanceResponse?> CreateInstanceAsync()
+    public async Task<(EvolutionCreateInstanceResponse? Result, string? Error)> CreateInstanceAsync()
     {
         SetHeaders();
 
@@ -56,23 +57,38 @@ public class WhatsAppService
         var json = JsonSerializer.Serialize(payload);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
+        _logger.LogInformation("Creating Evolution instance at {BaseUrl}/instance/create", BaseUrl);
+
         try
         {
             var response = await _http.PostAsync($"{BaseUrl}/instance/create", content);
             var body = await response.Content.ReadAsStringAsync();
 
+            _logger.LogInformation("Evolution create response: {Status} {Body}", response.StatusCode, body);
+
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Evolution API create instance failed: {Status} {Body}", response.StatusCode, body);
-                return null;
+                return (null, $"Evolution API retornou {(int)response.StatusCode}: {body}");
             }
 
-            return JsonSerializer.Deserialize<EvolutionCreateInstanceResponse>(body, JsonOpts);
+            var result = JsonSerializer.Deserialize<EvolutionCreateInstanceResponse>(body, JsonOpts);
+            return (result, null);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Cannot reach Evolution API at {BaseUrl}", BaseUrl);
+            return (null, $"Não foi possível conectar ao Evolution API em {BaseUrl}: {ex.Message}");
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Evolution API request timed out");
+            return (null, "Timeout ao conectar com Evolution API. O serviço pode estar iniciando.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create Evolution API instance");
-            return null;
+            return (null, $"Erro inesperado: {ex.Message}");
         }
     }
 
