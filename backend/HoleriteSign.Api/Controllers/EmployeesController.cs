@@ -29,11 +29,11 @@ public class EmployeesController : ControllerBase
         return Ok(employees);
     }
 
-    /// <summary>GET /api/employees/{id}</summary>
+    /// <summary>GET /api/employees/{id} — returns decrypted PII for edit form</summary>
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var employee = await _employeeService.GetByIdAsync(id, GetAdminId());
+        var employee = await _employeeService.GetDetailByIdAsync(id, GetAdminId());
         if (employee is null) return NotFound(new { message = "Funcionário não encontrado." });
         return Ok(employee);
     }

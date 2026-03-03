@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { fetchEmployees, createEmployee, updateEmployee, deleteEmployee, importEmployeesCsv } from '../../services/api';
+import { fetchEmployees, fetchEmployeeDetail, createEmployee, updateEmployee, deleteEmployee, importEmployeesCsv } from '../../services/api';
 import type { Employee } from '../../types';
 
 const emptyForm = { name: '', email: '', whatsApp: '', cpf: '', birthDate: '' };
@@ -108,7 +108,7 @@ export default function EmployeesPage() {
     setShowForm(true);
   };
 
-  const openEdit = (emp: Employee) => {
+  const openEdit = async (emp: Employee) => {
     setEditingId(emp.id);
     setForm({
       name: emp.name,
@@ -119,6 +119,18 @@ export default function EmployeesPage() {
     });
     setError('');
     setShowForm(true);
+
+    // Fetch decrypted PII for pre-populating the form
+    try {
+      const detail = await fetchEmployeeDetail(emp.id);
+      setForm(prev => ({
+        ...prev,
+        cpf: detail.cpf || '',
+        birthDate: detail.birthDate || '',
+      }));
+    } catch {
+      // If fetch fails, user can still edit other fields
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -234,7 +246,7 @@ export default function EmployeesPage() {
             </div>
             <div>
               <label htmlFor="emp-cpf" className="block text-sm font-medium text-gray-700">
-                CPF {editingId ? '(deixe vazio para manter)' : ''}
+                CPF
               </label>
               <input
                 id="emp-cpf"
@@ -245,7 +257,7 @@ export default function EmployeesPage() {
             </div>
             <div>
               <label htmlFor="emp-birthdate" className="block text-sm font-medium text-gray-700">
-                Data de Nascimento {editingId ? '(deixe vazio para manter)' : ''}
+                Data de Nascimento
               </label>
               <input
                 id="emp-birthdate"

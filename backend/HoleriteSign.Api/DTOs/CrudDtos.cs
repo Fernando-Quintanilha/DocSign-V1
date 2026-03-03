@@ -29,6 +29,21 @@ public record EmployeeDto(
     DateTime CreatedAt
 );
 
+/// <summary>
+/// Extended DTO returned by GetById — includes decrypted PII for the edit form.
+/// </summary>
+public record EmployeeDetailDto(
+    Guid Id,
+    string Name,
+    string? Email,
+    string? WhatsApp,
+    string? CpfLast4,
+    string? Cpf,
+    string? BirthDate,
+    bool IsActive,
+    DateTime CreatedAt
+);
+
 // ── PayPeriod ─────────────────────────────────────────────
 
 public record CreatePayPeriodRequest(

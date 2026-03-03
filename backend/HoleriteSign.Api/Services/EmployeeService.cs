@@ -64,6 +64,44 @@ public class EmployeeService
             .FirstOrDefaultAsync();
     }
 
+    /// <summary>
+    /// Get employee detail with decrypted PII (CPF, BirthDate) for the edit form.
+    /// </summary>
+    public async Task<EmployeeDetailDto?> GetDetailByIdAsync(Guid id, Guid adminId)
+    {
+        var emp = await _db.Employees
+            .FirstOrDefaultAsync(e => e.Id == id && e.AdminId == adminId && !e.DeletedAt.HasValue);
+
+        if (emp == null) return null;
+
+        string? cpf = null;
+        string? birthDate = null;
+
+        if (emp.CpfEncrypted != null)
+        {
+            try { cpf = _encryption.Decrypt(emp.CpfEncrypted); }
+            catch { /* ignore decryption errors */ }
+        }
+
+        if (emp.BirthDateEncrypted != null)
+        {
+            try { birthDate = _encryption.Decrypt(emp.BirthDateEncrypted); }
+            catch { /* ignore decryption errors */ }
+        }
+
+        return new EmployeeDetailDto(
+            emp.Id,
+            emp.Name,
+            emp.Email,
+            emp.WhatsApp,
+            emp.CpfLast4,
+            cpf,
+            birthDate,
+            emp.IsActive,
+            emp.CreatedAt
+        );
+    }
+
     public async Task<EmployeeDto> CreateAsync(CreateEmployeeRequest request, Guid adminId)
     {
         // ── Plan limit enforcement ──

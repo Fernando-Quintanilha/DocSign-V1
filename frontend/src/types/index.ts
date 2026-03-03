@@ -9,6 +9,18 @@ export interface Employee {
   createdAt: string;
 }
 
+export interface EmployeeDetail {
+  id: string;
+  name: string;
+  email: string | null;
+  whatsApp: string | null;
+  cpfLast4: string | null;
+  cpf: string | null;
+  birthDate: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface Document {
   id: string;
   employeeId: string;

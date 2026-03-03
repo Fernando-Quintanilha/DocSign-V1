@@ -1,6 +1,7 @@
 import api from '../lib/api';
 import type {
   Employee,
+  EmployeeDetail,
   Document,
   DashboardStats,
   EnhancedDashboard,
@@ -23,6 +24,11 @@ import type {
 
 export const fetchEmployees = async (search?: string): Promise<Employee[]> => {
   const { data } = await api.get('/employees', { params: search ? { search } : undefined });
+  return data;
+};
+
+export const fetchEmployeeDetail = async (id: string): Promise<EmployeeDetail> => {
+  const { data } = await api.get(`/employees/${id}`);
   return data;
 };
 
