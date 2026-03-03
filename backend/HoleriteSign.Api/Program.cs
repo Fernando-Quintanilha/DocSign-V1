@@ -37,7 +37,11 @@ builder.Host.UseSerilog((ctx, lc) => lc
 
 // Database (PostgreSQL via EF Core)
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    if (builder.Environment.IsDevelopment())
+        options.EnableSensitiveDataLogging();
+});
 
 // ── Rate Limiting (AspNetCoreRateLimit) ───────────────────
 builder.Services.AddMemoryCache();
@@ -57,6 +61,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.MapInboundClaims = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,

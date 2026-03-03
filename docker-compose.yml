@@ -173,7 +173,7 @@ services:
       LANGUAGE: "pt-BR"
       # ── Webhook config for delivery tracking ─────────────
       WEBHOOK_GLOBAL_ENABLED: "true"
-      WEBHOOK_GLOBAL_URL: "http://api:5000/api/notifications/webhook/evolution"
+      WEBHOOK_GLOBAL_URL: "http://api:8080/api/notifications/webhook/evolution"
       WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "true"
       WEBHOOK_EVENTS_MESSAGES_UPDATE: "true"
       WEBHOOK_EVENTS_CONNECTION_UPDATE: "true"
