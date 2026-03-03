@@ -2,6 +2,8 @@ using System.Text;
 using AspNetCoreRateLimit;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Hangfire;
+using Hangfire.PostgreSql;
 using HoleriteSign.Api.Middleware;
 using HoleriteSign.Api.Services;
 using HoleriteSign.Api.Validators;
@@ -106,8 +108,24 @@ builder.Services.AddScoped<ExportService>();
 // WhatsApp (Evolution API)
 builder.Services.AddHttpClient<WhatsAppService>();
 
-// Background jobs
+// ── Hangfire (background jobs — PostgreSQL storage) ──────
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options =>
+        options.UseNpgsqlConnection(
+            builder.Configuration.GetConnectionString("DefaultConnection")!)));
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = 2; // Low worker count for VPS
+    options.Queues = new[] { "notifications", "default" };
+});
+
+// Background jobs (Hangfire-powered)
+builder.Services.AddScoped<NotificationBackgroundService>();
 builder.Services.AddHostedService<TokenExpirationJob>();
+builder.Services.AddHostedService<DataRetentionJob>();
 
 // ── FluentValidation ──────────────────────────────────────
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
@@ -197,6 +215,13 @@ app.MapControllers();
 // Health checks
 app.MapHealthChecks("/health");
 app.MapGet("/", () => Results.Ok(new { status = "healthy", service = "HoleriteSign API", version = "1.0.0" }));
+
+// Hangfire Dashboard (accessible only in development or via direct API URL)
+app.MapHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HoleriteSign.Api.Middleware.HangfireAuthFilter() },
+    DashboardTitle = "HoleriteSign - Background Jobs",
+});
 
 // ── Seed SuperAdmin on startup ────────────────────────────
 try

@@ -33,3 +33,10 @@ docker/data/
 
 # ── Uploads ──────────────────────────────────────────────────
 **/uploads/
+
+# ── Diagnostic/deploy scripts ─────────────────────────────────
+check_*.js
+test_*.js
+deploy*.js
+ssh_cmd.js
+fix_*.js

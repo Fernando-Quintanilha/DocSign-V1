@@ -46,6 +46,29 @@ public record PayPeriodDto(
     DateTime CreatedAt
 );
 
+public record PayPeriodDetailDto(
+    Guid Id,
+    int Year,
+    int Month,
+    string Label,
+    int TotalEmployees,
+    int WithDocument,
+    int Signed,
+    int Pending,
+    List<PeriodEmployeeStatusDto> Employees,
+    DateTime CreatedAt
+);
+
+public record PeriodEmployeeStatusDto(
+    Guid EmployeeId,
+    string Name,
+    string? Email,
+    string? WhatsApp,
+    Guid? DocumentId,
+    string Status,       // "Uploaded", "Sent", "Signed", "Expired", "NoDocument"
+    DateTime? LastNotifiedAt
+);
+
 // ── Document ──────────────────────────────────────────────
 
 public record UploadDocumentRequest(

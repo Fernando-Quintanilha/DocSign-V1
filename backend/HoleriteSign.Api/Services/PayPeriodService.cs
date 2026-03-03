@@ -72,6 +72,54 @@ public class PayPeriodService
     }
 
     /// <summary>
+    /// Get a pay period by ID with employee document status summary.
+    /// </summary>
+    public async Task<PayPeriodDetailDto?> GetByIdAsync(Guid periodId, Guid adminId)
+    {
+        var period = await _db.PayPeriods
+            .Include(p => p.Documents)
+                .ThenInclude(d => d.Employee)
+            .FirstOrDefaultAsync(p => p.Id == periodId && p.AdminId == adminId);
+
+        if (period == null) return null;
+
+        var label = period.Label ?? $"{MonthNames[period.Month]} {period.Year}";
+
+        // All active employees for this admin
+        var allEmployees = await _db.Employees
+            .Where(e => e.AdminId == adminId && e.IsActive && !e.DeletedAt.HasValue)
+            .OrderBy(e => e.Name)
+            .ToListAsync();
+
+        var docsByEmployee = period.Documents.ToDictionary(d => d.EmployeeId);
+
+        var employeeStatuses = allEmployees.Select(e =>
+        {
+            var hasDoc = docsByEmployee.TryGetValue(e.Id, out var doc);
+            return new PeriodEmployeeStatusDto(
+                e.Id,
+                e.Name,
+                e.Email,
+                e.WhatsApp,
+                hasDoc ? doc!.Id : null,
+                hasDoc ? doc!.Status.ToString() : "NoDocument",
+                hasDoc ? doc!.LastNotifiedAt : null
+            );
+        }).ToList();
+
+        var totalEmployees = allEmployees.Count;
+        var withDocument = period.Documents.Count;
+        var signed = period.Documents.Count(d => d.Status == Core.Enums.DocumentStatus.Signed);
+        var pending = totalEmployees - signed;
+
+        return new PayPeriodDetailDto(
+            period.Id, period.Year, period.Month, label,
+            totalEmployees, withDocument, signed, pending,
+            employeeStatuses, period.CreatedAt
+        );
+    }
+
+    /// <summary>
     /// Get or create a pay period for the given year/month.
     /// </summary>
     public async Task<PayPeriod> GetOrCreateAsync(int year, int month, Guid adminId)

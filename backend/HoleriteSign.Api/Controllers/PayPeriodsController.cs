@@ -29,6 +29,15 @@ public class PayPeriodsController : ControllerBase
         return Ok(periods);
     }
 
+    /// <summary>GET /api/payperiods/{id} — period details with employee statuses</summary>
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var result = await _payPeriodService.GetByIdAsync(id, GetAdminId());
+        if (result == null) return NotFound(new { message = "Período não encontrado." });
+        return Ok(result);
+    }
+
     /// <summary>POST /api/payperiods</summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreatePayPeriodRequest request)

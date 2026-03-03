@@ -84,7 +84,8 @@ public class NotificationService
                     await SendEmailAsync(document.Employee, document, signingUrl!);
                     break;
                 case NotificationChannel.WhatsApp:
-                    await SendWhatsAppAsync(document.Employee, document, signingUrl!);
+                    var messageId = await SendWhatsAppAsync(document.Employee, document, signingUrl!);
+                    notification.ExternalId = messageId;
                     break;
             }
 
@@ -223,7 +224,7 @@ public class NotificationService
         await client.SendMailAsync(message);
     }
 
-    private async Task SendWhatsAppAsync(Employee employee, Document document, string signingUrl)
+    private async Task<string?> SendWhatsAppAsync(Employee employee, Document document, string signingUrl)
     {
         if (string.IsNullOrEmpty(employee.WhatsApp))
             throw new InvalidOperationException("Funcionário não possui WhatsApp cadastrado.");
@@ -241,6 +242,9 @@ public class NotificationService
             _logger.LogInformation(
                 "WhatsApp enviado para {Phone} (msgId: {MsgId})",
                 employee.WhatsApp, result.Key.Id);
+            return result.Key.Id;
         }
+
+        return null;
     }
 }
