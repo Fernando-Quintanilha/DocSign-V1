@@ -24,17 +24,6 @@ public class AuthController : ControllerBase
         return Guid.Parse(sub!);
     }
 
-    /// <summary>GET /api/auth/debug/claims — Temporary debug endpoint for JWT claims.</summary>
-    [HttpGet("debug/claims")]
-    [Authorize]
-    public IActionResult DebugClaims()
-    {
-        var claims = User.Claims.Select(c => new { type = c.Type, value = c.Value }).ToList();
-        var ni = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var sub = User.FindFirstValue("sub");
-        return Ok(new { nameIdentifier = ni, sub, resolvedAdminId = ni ?? sub, claimCount = claims.Count, claims });
-    }
-
     /// <summary>POST /api/auth/register — Create a new admin account.</summary>
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
