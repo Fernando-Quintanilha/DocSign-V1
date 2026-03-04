@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using HoleriteSign.Api.DTOs;
@@ -85,7 +86,16 @@ public class EmployeeService
 
         if (emp.BirthDateEncrypted != null)
         {
-            try { birthDate = _encryption.Decrypt(emp.BirthDateEncrypted); }
+            try
+            {
+                var raw = _encryption.Decrypt(emp.BirthDateEncrypted);
+                // Normalize to yyyy-MM-dd for HTML <input type="date"> compatibility
+                birthDate = DateOnly.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)
+                         || DateOnly.TryParse(raw, new CultureInfo("pt-BR"), DateTimeStyles.None, out d)
+                         || DateOnly.TryParse(raw, out d)
+                    ? d.ToString("yyyy-MM-dd")
+                    : raw;
+            }
             catch { /* ignore decryption errors */ }
         }
 
@@ -143,13 +153,15 @@ public class EmployeeService
             employee.CpfEncrypted = _encryption.Encrypt(cpfClean);
         }
 
-        // Birth date: store AES-256 encrypted
+        // Birth date: normalize to yyyy-MM-dd and store AES-256 encrypted
         if (!string.IsNullOrWhiteSpace(request.BirthDate))
         {
-            if (!DateOnly.TryParse(request.BirthDate, out _))
+            if (!DateOnly.TryParse(request.BirthDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate)
+             && !DateOnly.TryParse(request.BirthDate, new CultureInfo("pt-BR"), DateTimeStyles.None, out parsedDate)
+             && !DateOnly.TryParse(request.BirthDate, out parsedDate))
                 throw new InvalidOperationException("Data de nascimento inválida. Use formato yyyy-MM-dd.");
 
-            employee.BirthDateEncrypted = _encryption.Encrypt(request.BirthDate);
+            employee.BirthDateEncrypted = _encryption.Encrypt(parsedDate.ToString("yyyy-MM-dd"));
         }
 
         _db.Employees.Add(employee);
@@ -193,10 +205,12 @@ public class EmployeeService
 
         if (!string.IsNullOrWhiteSpace(request.BirthDate))
         {
-            if (!DateOnly.TryParse(request.BirthDate, out _))
-                throw new InvalidOperationException("Data de nascimento inválida.");
+            if (!DateOnly.TryParse(request.BirthDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate)
+             && !DateOnly.TryParse(request.BirthDate, new CultureInfo("pt-BR"), DateTimeStyles.None, out parsedDate)
+             && !DateOnly.TryParse(request.BirthDate, out parsedDate))
+                throw new InvalidOperationException("Data de nascimento inválida. Use formato yyyy-MM-dd.");
 
-            employee.BirthDateEncrypted = _encryption.Encrypt(request.BirthDate);
+            employee.BirthDateEncrypted = _encryption.Encrypt(parsedDate.ToString("yyyy-MM-dd"));
         }
 
         await _db.SaveChangesAsync();
