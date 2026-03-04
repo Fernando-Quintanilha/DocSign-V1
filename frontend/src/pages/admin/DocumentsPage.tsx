@@ -422,9 +422,9 @@ export default function DocumentsPage() {
                           Substituir
                         </button>
                       )}
-                      {doc.status === 'Uploaded' && (
+                      {doc.status !== 'Signed' && (
                         <button
-                          onClick={() => { if (confirm('Excluir documento?')) deleteMutation.mutate(doc.id); }}
+                          onClick={() => { if (confirm(doc.status === 'Sent' ? 'Este documento já foi enviado ao funcionário. O link de assinatura será invalidado. Deseja continuar?' : 'Excluir documento?')) deleteMutation.mutate(doc.id); }}
                           className="text-red-600 hover:text-red-800 font-medium"
                         >
                           Excluir

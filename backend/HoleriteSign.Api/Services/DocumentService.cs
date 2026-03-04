@@ -167,11 +167,19 @@ public class DocumentService
     public async Task DeleteAsync(Guid id, Guid adminId)
     {
         var document = await _db.Documents
-            .FirstOrDefaultAsync(d => d.Id == id && d.AdminId == adminId && d.Status == DocumentStatus.Uploaded)
+            .FirstOrDefaultAsync(d => d.Id == id && d.AdminId == adminId && d.Status != DocumentStatus.Signed)
             ?? throw new InvalidOperationException("Documento não encontrado ou já foi assinado.");
 
-        // Delete from MinIO
+        // Delete original file from MinIO
         try { await _storage.DeleteAsync(document.OriginalFileKey); } catch { /* ignore if already deleted */ }
+
+        // Remove related notifications
+        var notifications = await _db.Notifications.Where(n => n.DocumentId == id).ToListAsync();
+        if (notifications.Any()) _db.Notifications.RemoveRange(notifications);
+
+        // Remove related signing verifications
+        var verifications = await _db.SigningVerifications.Where(v => v.DocumentId == id).ToListAsync();
+        if (verifications.Any()) _db.SigningVerifications.RemoveRange(verifications);
 
         _db.Documents.Remove(document);
         await _db.SaveChangesAsync();
