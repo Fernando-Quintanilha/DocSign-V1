@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchProfile, updateProfile, changePassword } from '../../services/api';
 import { useAuthStore } from '../../stores/auth';
+import { useThemeStore } from '../../stores/theme';
 import type { AdminProfile } from '../../types';
 
 export default function SettingsPage() {
@@ -9,6 +10,8 @@ export default function SettingsPage() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const token = useAuthStore((s) => s.token);
   const refreshToken = useAuthStore((s) => s.refreshToken);
+  const dark = useThemeStore((s) => s.dark);
+  const toggleTheme = useThemeStore((s) => s.toggle);
 
   // Profile
   const [name, setName] = useState('');
@@ -102,6 +105,32 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8 max-w-2xl">
       <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
+
+      {/* Appearance / Dark Mode Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Aparência</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-700">Modo Escuro</p>
+            <p className="text-xs text-gray-500 mt-1">Alterne entre o tema claro e escuro</p>
+          </div>
+          <button
+            onClick={toggleTheme}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+              dark ? 'bg-primary-600' : 'bg-gray-300'
+            }`}
+            role="switch"
+            aria-checked={dark}
+            aria-label="Ativar modo escuro"
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                dark ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
 
       {/* Profile Section */}
       <form onSubmit={handleProfileSubmit} className="bg-white rounded-lg shadow p-6 space-y-4">

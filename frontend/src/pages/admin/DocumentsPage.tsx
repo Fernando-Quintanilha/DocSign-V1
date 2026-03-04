@@ -391,28 +391,24 @@ export default function DocumentsPage() {
                             Gerar Link
                           </button>
                           {doc.status === 'Uploaded' && (
-                            <div className="relative inline-block group">
+                            <>
                               <button
+                                onClick={() => sendNotifMutation.mutate({ docId: doc.id, channel: 'Email' })}
                                 disabled={sendNotifMutation.isPending}
-                                className="text-indigo-600 hover:text-indigo-800 font-medium"
+                                className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium"
+                                title="Enviar por E-mail"
                               >
-                                Enviar ▾
+                                📧 E-mail
                               </button>
-                              <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                                <button
-                                  onClick={() => sendNotifMutation.mutate({ docId: doc.id, channel: 'Email' })}
-                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg"
-                                >
-                                  📧 E-mail
-                                </button>
-                                <button
-                                  onClick={() => sendNotifMutation.mutate({ docId: doc.id, channel: 'WhatsApp' })}
-                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg"
-                                >
-                                  💬 WhatsApp
-                                </button>
-                              </div>
-                            </div>
+                              <button
+                                onClick={() => sendNotifMutation.mutate({ docId: doc.id, channel: 'WhatsApp' })}
+                                disabled={sendNotifMutation.isPending}
+                                className="inline-flex items-center gap-1 text-green-600 hover:text-green-800 font-medium"
+                                title="Enviar por WhatsApp"
+                              >
+                                💬 WhatsApp
+                              </button>
+                            </>
                           )}
                         </>
                       )}

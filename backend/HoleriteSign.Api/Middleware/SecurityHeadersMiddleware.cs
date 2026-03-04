@@ -16,9 +16,6 @@ public class SecurityHeadersMiddleware
         // Impede que o browser faça MIME-sniffing
         h["X-Content-Type-Options"] = "nosniff";
 
-        // Impede clickjacking (iframe embedding)
-        h["X-Frame-Options"] = "DENY";
-
         // Ativa proteção XSS do browser (legado, mas não prejudica)
         h["X-XSS-Protection"] = "1; mode=block";
 
@@ -34,8 +31,18 @@ public class SecurityHeadersMiddleware
             h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
         }
 
-        // CSP mínimo para API (não serve HTML, mas protege caso alguém acesse diretamente)
-        h["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
+        // Permite iframe do PDF de assinatura apenas do mesmo domínio
+        var path = ctx.Request.Path.Value ?? "";
+        if (path.StartsWith("/api/signing/download/", StringComparison.OrdinalIgnoreCase))
+        {
+            h["X-Frame-Options"] = "SAMEORIGIN";
+            h["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'self'";
+        }
+        else
+        {
+            h["X-Frame-Options"] = "DENY";
+            h["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
+        }
 
         // Remove header que revela tecnologia
         h.Remove("X-Powered-By");

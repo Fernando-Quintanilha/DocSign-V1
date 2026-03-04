@@ -106,7 +106,7 @@ export default function PlansPage() {
                   <button
                     onClick={() => {
                       // In production, redirect to payment gateway
-                      alert(`Para fazer upgrade para ${plan.displayName}, entre em contato com vendas@holeritesign.com.br`);
+                      alert(`Para fazer upgrade para ${plan.displayName}, entre em contato com holeritesign.system@gmail.com`);
                     }}
                     className="w-full py-2 px-4 rounded-md text-sm font-medium bg-primary-600 text-white hover:bg-primary-700"
                   >
@@ -125,10 +125,10 @@ export default function PlansPage() {
           Entre em contato conosco para planos Enterprise com funcionalidades customizadas.
         </p>
         <a
-          href="mailto:vendas@holeritesign.com.br"
+          href="mailto:holeritesign.system@gmail.com"
           className="mt-3 inline-block text-sm font-medium text-primary-600 hover:text-primary-700"
         >
-          vendas@holeritesign.com.br
+          holeritesign.system@gmail.com
         </a>
       </div>
     </div>
