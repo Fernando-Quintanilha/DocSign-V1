@@ -43,6 +43,7 @@ public class NotificationService
         var document = await _db.Documents
             .Include(d => d.Employee)
             .Include(d => d.PayPeriod)
+            .Include(d => d.Admin)
             .FirstOrDefaultAsync(d => d.Id == documentId)
             ?? throw new InvalidOperationException("Documento não encontrado.");
 
@@ -81,10 +82,10 @@ public class NotificationService
             switch (parsedChannel)
             {
                 case NotificationChannel.Email:
-                    await SendEmailAsync(document.Employee, document, signingUrl!);
+                    await SendEmailAsync(document.Employee, document, signingUrl!, document.Admin?.CompanyName);
                     break;
                 case NotificationChannel.WhatsApp:
-                    var messageId = await SendWhatsAppAsync(document.Employee, document, signingUrl!);
+                    var messageId = await SendWhatsAppAsync(document.Employee, document, signingUrl!, document.Admin?.CompanyName);
                     notification.ExternalId = messageId;
                     break;
             }
@@ -181,7 +182,7 @@ public class NotificationService
             .ToListAsync();
     }
 
-    private async Task SendEmailAsync(Employee employee, Document document, string signingUrl)
+    private async Task SendEmailAsync(Employee employee, Document document, string signingUrl, string? companyName = null)
     {
         if (string.IsNullOrEmpty(employee.Email))
             throw new InvalidOperationException("Funcionário não possui e-mail cadastrado.");
@@ -191,11 +192,17 @@ public class NotificationService
         var smtpUser = _config["Smtp:User"];
         var smtpPass = _config["Smtp:Password"];
         var fromEmail = _config["Smtp:From"] ?? "noreply@holeritesign.com";
+        var baseFromName = _config["Smtp:FromName"] ?? "HoleriteSign";
+
+        // Personalize: "TH Distribuidora - HoleriteSign" or just "HoleriteSign"
+        var fromName = !string.IsNullOrWhiteSpace(companyName)
+            ? $"{companyName} - {baseFromName}"
+            : baseFromName;
 
         // MVP: If SMTP is not configured, log and simulate success
         if (string.IsNullOrEmpty(smtpHost))
         {
-            Console.WriteLine($"[EMAIL SIMULADO] Para: {employee.Email} | Link: {signingUrl}");
+            Console.WriteLine($"[EMAIL SIMULADO] Para: {employee.Email} | De: {fromName} | Link: {signingUrl}");
             return;
         }
 
@@ -205,11 +212,14 @@ public class NotificationService
             Credentials = new NetworkCredential(smtpUser, smtpPass),
         };
 
-        var subject = $"Holerite disponível - {document.PayPeriod.Label ?? "Período"}";
+        var empresaLabel = !string.IsNullOrWhiteSpace(companyName) ? companyName : "sua empresa";
+        var subject = $"Holerite disponível - {empresaLabel} - {document.PayPeriod.Label ?? "Período"}";
         var body = $"""
             Olá {employee.Name},
 
-            Seu holerite está disponível para visualização e assinatura.
+            Seu holerite de {document.PayPeriod.Label ?? "período"} está disponível para visualização e assinatura.
+
+            Empresa: {empresaLabel}
 
             Clique no link abaixo para acessar:
             {signingUrl}
@@ -217,19 +227,26 @@ public class NotificationService
             Este link é válido por 72 horas.
 
             Atenciosamente,
-            Equipe HoleriteSign
+            {fromName}
             """;
 
-        var message = new MailMessage(fromEmail, employee.Email, subject, body);
+        var fromAddress = new MailAddress(fromEmail, fromName);
+        var toAddress = new MailAddress(employee.Email);
+        var message = new MailMessage(fromAddress, toAddress)
+        {
+            Subject = subject,
+            Body = body,
+        };
         await client.SendMailAsync(message);
     }
 
-    private async Task<string?> SendWhatsAppAsync(Employee employee, Document document, string signingUrl)
+    private async Task<string?> SendWhatsAppAsync(Employee employee, Document document, string signingUrl, string? companyName = null)
     {
         if (string.IsNullOrEmpty(employee.WhatsApp))
             throw new InvalidOperationException("Funcionário não possui WhatsApp cadastrado.");
 
-        var msg = $"📄 *HoleriteSign*\n\n" +
+        var empresaLabel = !string.IsNullOrWhiteSpace(companyName) ? companyName : "HoleriteSign";
+        var msg = $"📄 *{empresaLabel}*\n\n" +
                   $"Olá *{employee.Name}*!\n\n" +
                   $"Seu holerite de *{document.PayPeriod.Label}* está disponível para assinatura.\n\n" +
                   $"🔗 Acesse o link abaixo para visualizar e assinar:\n{signingUrl}\n\n" +
