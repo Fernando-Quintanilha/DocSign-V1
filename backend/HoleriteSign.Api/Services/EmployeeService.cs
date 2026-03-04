@@ -136,7 +136,7 @@ public class EmployeeService
             AdminId = adminId,
             Name = request.Name.Trim(),
             Email = request.Email?.Trim().ToLower(),
-            WhatsApp = request.WhatsApp?.Trim(),
+            WhatsApp = CleanWhatsApp(request.WhatsApp),
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -190,7 +190,7 @@ public class EmployeeService
 
         employee.Name = request.Name.Trim();
         employee.Email = request.Email?.Trim().ToLower();
-        employee.WhatsApp = request.WhatsApp?.Trim();
+        employee.WhatsApp = CleanWhatsApp(request.WhatsApp);
         employee.UpdatedAt = DateTime.UtcNow;
 
         if (!string.IsNullOrWhiteSpace(request.Cpf))
@@ -343,6 +343,19 @@ public class EmployeeService
         }
         result.Add(current.ToString());
         return result.ToArray();
+    }
+
+    /// <summary>
+    /// Strips formatting from WhatsApp number, keeping only digits and optional leading '+'.
+    /// </summary>
+    private static string? CleanWhatsApp(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var trimmed = raw.Trim();
+        var hasPlus = trimmed.StartsWith('+');
+        var digits = new string(trimmed.Where(char.IsDigit).ToArray());
+        if (string.IsNullOrEmpty(digits)) return null;
+        return hasPlus ? $"+{digits}" : digits;
     }
 }
 

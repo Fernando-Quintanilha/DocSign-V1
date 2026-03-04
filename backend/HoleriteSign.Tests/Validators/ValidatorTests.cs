@@ -132,7 +132,7 @@ public class ValidatorTests
     public void CreateEmployee_InvalidBirthDate_HasError()
     {
         var validator = new CreateEmployeeRequestValidator();
-        var req = new CreateEmployeeRequest("Maria", "m@e.com", null, null, "2026/01/15");
+        var req = new CreateEmployeeRequest("Maria", "m@e.com", null, null, "not-a-date");
 
         var result = validator.TestValidate(req);
 

@@ -64,18 +64,24 @@ public class CreateEmployeeRequestValidator : AbstractValidator<CreateEmployeeRe
             .When(x => !string.IsNullOrWhiteSpace(x.Email));
 
         RuleFor(x => x.WhatsApp)
-            .Matches(@"^\+?\d{10,15}$").WithMessage("WhatsApp deve estar no formato E.164 (ex: +5511999999999).")
+            .Must(whats => {
+                var digits = new string(whats!.Where(char.IsDigit).ToArray());
+                return digits.Length >= 10 && digits.Length <= 15;
+            }).WithMessage("WhatsApp deve conter entre 10 e 15 dígitos.")
             .When(x => !string.IsNullOrWhiteSpace(x.WhatsApp));
 
         RuleFor(x => x.Cpf)
             .Must(cpf => {
-                var digits = new string(cpf.Where(char.IsDigit).ToArray());
+                var digits = new string(cpf!.Where(char.IsDigit).ToArray());
                 return digits.Length == 11;
             }).WithMessage("CPF deve conter exatamente 11 dígitos numéricos.")
             .When(x => !string.IsNullOrWhiteSpace(x.Cpf));
 
         RuleFor(x => x.BirthDate)
-            .Matches(@"^\d{4}-\d{2}-\d{2}$").WithMessage("Data de nascimento deve estar no formato yyyy-MM-dd.")
+            .Must(date => DateOnly.TryParse(date, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _)
+                       || DateOnly.TryParse(date, new System.Globalization.CultureInfo("pt-BR"), System.Globalization.DateTimeStyles.None, out _)
+                       || DateOnly.TryParse(date, out _))
+            .WithMessage("Data de nascimento inválida.")
             .When(x => !string.IsNullOrWhiteSpace(x.BirthDate));
 
         RuleFor(x => x)
@@ -98,18 +104,24 @@ public class UpdateEmployeeRequestValidator : AbstractValidator<UpdateEmployeeRe
             .When(x => !string.IsNullOrWhiteSpace(x.Email));
 
         RuleFor(x => x.WhatsApp)
-            .Matches(@"^\+?\d{10,15}$").WithMessage("WhatsApp inválido.")
+            .Must(whats => {
+                var digits = new string(whats!.Where(char.IsDigit).ToArray());
+                return digits.Length >= 10 && digits.Length <= 15;
+            }).WithMessage("WhatsApp deve conter entre 10 e 15 dígitos.")
             .When(x => !string.IsNullOrWhiteSpace(x.WhatsApp));
 
         RuleFor(x => x.Cpf)
             .Must(cpf => {
-                var digits = new string(cpf.Where(char.IsDigit).ToArray());
+                var digits = new string(cpf!.Where(char.IsDigit).ToArray());
                 return digits.Length == 11;
             }).WithMessage("CPF deve conter exatamente 11 dígitos.")
             .When(x => !string.IsNullOrWhiteSpace(x.Cpf));
 
         RuleFor(x => x.BirthDate)
-            .Matches(@"^\d{4}-\d{2}-\d{2}$").WithMessage("Data de nascimento inválida.")
+            .Must(date => DateOnly.TryParse(date, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _)
+                       || DateOnly.TryParse(date, new System.Globalization.CultureInfo("pt-BR"), System.Globalization.DateTimeStyles.None, out _)
+                       || DateOnly.TryParse(date, out _))
+            .WithMessage("Data de nascimento inválida.")
             .When(x => !string.IsNullOrWhiteSpace(x.BirthDate));
     }
 }
