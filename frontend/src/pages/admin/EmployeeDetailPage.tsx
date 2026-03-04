@@ -102,11 +102,11 @@ export default function EmployeeDetailPage() {
       </div>
 
       {/* Documents Table */}
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Documentos</h2>
         </div>
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-[600px] w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Período</th>

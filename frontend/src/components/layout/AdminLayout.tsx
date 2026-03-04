@@ -40,12 +40,12 @@ export default function AdminLayout() {
               HoleriteSign
             </Link>
             {/* Desktop nav */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-1 xl:gap-4 flex-wrap">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-100"
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 px-2 xl:px-3 py-2 rounded-md hover:bg-gray-100 whitespace-nowrap"
                 >
                   {link.label}
                 </Link>
@@ -58,20 +58,20 @@ export default function AdminLayout() {
             </span>
             <Link
               to="/admin/profile"
-              className="hidden md:inline text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-100"
+              className="hidden lg:inline text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-100"
             >
               Perfil
             </Link>
             <button
               onClick={handleLogout}
-              className="hidden md:inline text-sm font-medium text-red-600 hover:text-red-800 px-3 py-2 rounded-md hover:bg-red-50"
+              className="hidden lg:inline text-sm font-medium text-red-600 hover:text-red-800 px-3 py-2 rounded-md hover:bg-red-50"
             >
               Sair
             </button>
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100"
+              className="lg:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100"
               aria-label="Menu"
             >
               {mobileOpen ? (
@@ -89,7 +89,7 @@ export default function AdminLayout() {
 
         {/* Mobile menu dropdown */}
         {mobileOpen && (
-          <div className="md:hidden mt-3 pt-3 border-t border-gray-200 space-y-1">
+          <div className="lg:hidden mt-3 pt-3 border-t border-gray-200 space-y-1">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
@@ -118,7 +118,7 @@ export default function AdminLayout() {
       </nav>
 
       {/* Page Content */}
-      <main className="max-w-7xl mx-auto py-6 px-4">
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 min-w-0 overflow-x-hidden">
         <Outlet />
       </main>
     </div>

@@ -36,7 +36,7 @@ export default function AuditPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold text-gray-900">Auditoria</h1>
         <select
           aria-label="Filtrar por tipo de evento"
@@ -57,8 +57,8 @@ export default function AuditPage() {
         </select>
       </div>
 
-      <div className="mt-6 bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="mt-6 bg-white shadow rounded-lg overflow-x-auto">
+        <table className="min-w-[800px] w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -135,7 +135,7 @@ export default function AuditPage() {
 
         {/* Pagination */}
         {data && data.totalPages > 1 && (
-          <div className="px-6 py-3 flex items-center justify-between border-t border-gray-200 bg-gray-50">
+          <div className="px-6 py-3 flex items-center justify-between flex-wrap gap-2 border-t border-gray-200 bg-gray-50">
             <p className="text-sm text-gray-500">
               Página {data.page} de {data.totalPages} ({data.total} registros)
             </p>

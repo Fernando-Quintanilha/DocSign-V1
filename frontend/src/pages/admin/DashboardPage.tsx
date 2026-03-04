@@ -100,7 +100,7 @@ export default function DashboardPage() {
 
       {/* Usage Meter (DASH-04 / PLAN-04) */}
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
           <h2 className="text-lg font-semibold text-gray-900">Uso do Plano (este mês)</h2>
           <span className="text-sm text-gray-500">
             {data.documentsUsedThisMonth} / {usageMaxLabel} documentos enviados
@@ -130,7 +130,7 @@ export default function DashboardPage() {
 
         {/* Quem falta assinar (DASH-06) */}
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
             <h2 className="text-lg font-semibold text-gray-900">
               Quem falta assinar
             </h2>
@@ -156,9 +156,9 @@ export default function DashboardPage() {
                 ✓ Todos os funcionários assinaram!
               </p>
             ) : (
-              <ul className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+              <ul className="divide-y divide-gray-100 max-h-80 overflow-y-auto overflow-x-hidden">
                 {pending.map((emp: PendingEmployee) => (
-                <li key={emp.employeeId} className="py-3 flex items-center justify-between">
+                <li key={emp.employeeId} className="py-3 flex items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{emp.employeeName}</p>
                     <p className="text-xs text-gray-500">

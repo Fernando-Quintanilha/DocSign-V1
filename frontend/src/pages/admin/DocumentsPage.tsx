@@ -166,7 +166,7 @@ export default function DocumentsPage() {
         onChange={handleReplaceFile}
       />
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold text-gray-900">Documentos</h1>
         <button
           onClick={() => setShowUpload(!showUpload)}
@@ -242,24 +242,26 @@ export default function DocumentsPage() {
       {signingUrl && (
         <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
           <p className="text-sm font-medium text-green-800 mb-2">Link de Assinatura gerado:</p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <input
               type="text" readOnly value={signingUrl}
               aria-label="Link de assinatura"
-              className="flex-1 bg-white rounded-md border border-green-300 px-3 py-2 text-sm font-mono"
+              className="flex-1 min-w-0 bg-white rounded-md border border-green-300 px-3 py-2 text-sm font-mono truncate"
             />
-            <button
-              onClick={handleCopyLink}
-              className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700"
-            >
-              Copiar
-            </button>
-            <button
-              onClick={() => setSigningUrl('')}
-              className="text-green-600 hover:text-green-800 text-sm font-medium"
-            >
-              Fechar
-            </button>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={handleCopyLink}
+                className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700"
+              >
+                Copiar
+              </button>
+              <button
+                onClick={() => setSigningUrl('')}
+                className="text-green-600 hover:text-green-800 text-sm font-medium"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
           {copyMsg && <p className="mt-1 text-xs text-green-600">{copyMsg}</p>}
         </div>
@@ -312,8 +314,8 @@ export default function DocumentsPage() {
       </div>
 
       {/* Table */}
-      <div className="mt-6 bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="mt-6 bg-white shadow rounded-lg overflow-x-auto">
+        <table className="min-w-[900px] w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Funcionário</th>
@@ -351,7 +353,8 @@ export default function DocumentsPage() {
                       {formatDate(doc.createdAt)}
                       {doc.signedAt && <span className="block text-xs text-green-600">Assinado: {formatDate(doc.signedAt)}</span>}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
                       {doc.status === 'Signed' ? (
                         <>
                           <button
@@ -430,6 +433,7 @@ export default function DocumentsPage() {
                           Excluir
                         </button>
                       )}
+                      </div>
                     </td>
                   </tr>
                 );
