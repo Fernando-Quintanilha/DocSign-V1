@@ -54,7 +54,7 @@ public class SigningController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>GET /api/signing/download/{token} — serves the actual PDF</summary>
+    /// <summary>GET /api/signing/download/{token} — serves the actual PDF inline (for iframe viewing)</summary>
     [HttpGet("download/{token}")]
     public async Task<IActionResult> DownloadFile(string token)
     {
@@ -62,7 +62,9 @@ public class SigningController : ControllerBase
         if (result is null)
             return NotFound(new { message = "Arquivo não encontrado." });
 
-        return File(result.Value.bytes, "application/pdf", result.Value.filename);
+        // Return without filename so Content-Disposition defaults to "inline"
+        // This allows the PDF to render inside an iframe on the signing page
+        return File(result.Value.bytes, "application/pdf");
     }
 
     /// <summary>POST /api/signing/sign/{token}</summary>
