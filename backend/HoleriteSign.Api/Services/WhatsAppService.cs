@@ -25,12 +25,29 @@ public class WhatsAppService
         _logger = logger;
     }
 
-    private void SetHeaders()
+    /// <summary>
+    /// Creates a new HttpRequestMessage with required headers instead of mutating shared DefaultRequestHeaders.
+    /// </summary>
+    private HttpRequestMessage CreateRequest(HttpMethod method, string url, HttpContent? content = null)
     {
-        _http.DefaultRequestHeaders.Clear();
-        _http.DefaultRequestHeaders.Add("apikey", ApiKey);
-        _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        var request = new HttpRequestMessage(method, url) { Content = content };
+        request.Headers.Add("apikey", ApiKey);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        return request;
     }
+
+    // Thread-safe HTTP helpers – each call creates its own request with headers
+    private Task<HttpResponseMessage> ApiGetAsync(string url) =>
+        _http.SendAsync(CreateRequest(HttpMethod.Get, url));
+
+    private Task<HttpResponseMessage> ApiPostAsync(string url, HttpContent? content = null) =>
+        _http.SendAsync(CreateRequest(HttpMethod.Post, url, content));
+
+    private Task<HttpResponseMessage> ApiPutAsync(string url, HttpContent? content = null) =>
+        _http.SendAsync(CreateRequest(HttpMethod.Put, url, content));
+
+    private Task<HttpResponseMessage> ApiDeleteAsync(string url) =>
+        _http.SendAsync(CreateRequest(HttpMethod.Delete, url));
 
     // ── Diagnostics ──────────────────────────────────────────
 
@@ -39,7 +56,6 @@ public class WhatsAppService
     /// </summary>
     public async Task<object> RunDiagnosticAsync()
     {
-        SetHeaders();
         var results = new Dictionary<string, object?>();
         results["timestamp"] = DateTime.UtcNow.ToString("o");
         results["baseUrl"] = BaseUrl;
@@ -48,7 +64,7 @@ public class WhatsAppService
         // 1. Check if Evolution API is reachable
         try
         {
-            var response = await _http.GetAsync($"{BaseUrl}/");
+            var response = await ApiGetAsync($"{BaseUrl}/");
             results["evoReachable"] = true;
             results["evoStatus"] = (int)response.StatusCode;
             var body = await response.Content.ReadAsStringAsync();
@@ -63,7 +79,7 @@ public class WhatsAppService
         // 2. Fetch all instances
         try
         {
-            var response = await _http.GetAsync($"{BaseUrl}/instance/fetchInstances");
+            var response = await ApiGetAsync($"{BaseUrl}/instance/fetchInstances");
             var body = await response.Content.ReadAsStringAsync();
             results["fetchInstancesStatus"] = (int)response.StatusCode;
             results["fetchInstancesBody"] = body.Length > 2000 ? body[..2000] : body;
@@ -76,7 +92,7 @@ public class WhatsAppService
         // 3. Get connection state
         try
         {
-            var response = await _http.GetAsync($"{BaseUrl}/instance/connectionState/{InstanceName}");
+            var response = await ApiGetAsync($"{BaseUrl}/instance/connectionState/{InstanceName}");
             var body = await response.Content.ReadAsStringAsync();
             results["connectionStateStatus"] = (int)response.StatusCode;
             results["connectionStateBody"] = body;
@@ -89,7 +105,7 @@ public class WhatsAppService
         // 4. Try connect endpoint (this is what generates QR)
         try
         {
-            var response = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
+            var response = await ApiGetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
             var body = await response.Content.ReadAsStringAsync();
             results["connectStatus"] = (int)response.StatusCode;
             results["connectBodyLength"] = body.Length;
@@ -119,7 +135,7 @@ public class WhatsAppService
         // 6. Check if Evolution can reach WhatsApp web (via Evolution's internal check)
         try
         {
-            var response = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
+            var response = await ApiGetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
             var body = await response.Content.ReadAsStringAsync();
             results["connectAttempt1"] = body.Length > 1000 ? body[..1000] : body;
             
@@ -127,7 +143,7 @@ public class WhatsAppService
             if (!body.Contains("base64") || body.Contains("\"base64\":null"))
             {
                 await Task.Delay(3000);
-                response = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
+                response = await ApiGetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
                 body = await response.Content.ReadAsStringAsync();
                 results["connectAttempt2"] = body.Length > 1000 ? body[..1000] : body;
             }
@@ -141,7 +157,7 @@ public class WhatsAppService
         try
         {
             // Delete existing instance
-            var delResp = await _http.DeleteAsync($"{BaseUrl}/instance/delete/{InstanceName}");
+            var delResp = await ApiDeleteAsync($"{BaseUrl}/instance/delete/{InstanceName}");
             var delBody = await delResp.Content.ReadAsStringAsync();
             results["lifecycleDeleteStatus"] = (int)delResp.StatusCode;
             results["lifecycleDeleteBody"] = delBody;
@@ -158,7 +174,7 @@ public class WhatsAppService
             };
             var createJson = System.Text.Json.JsonSerializer.Serialize(createPayload);
             var createContent = new StringContent(createJson, Encoding.UTF8, "application/json");
-            var createResp = await _http.PostAsync($"{BaseUrl}/instance/create", createContent);
+            var createResp = await ApiPostAsync($"{BaseUrl}/instance/create", createContent);
             var createBody = await createResp.Content.ReadAsStringAsync();
             results["lifecycleCreateStatus"] = (int)createResp.StatusCode;
             results["lifecycleCreateHasQR"] = createBody.Contains("base64") && !createBody.Contains("\"base64\":null") && !createBody.Contains("\"base64\":\"\"");
@@ -168,7 +184,7 @@ public class WhatsAppService
             for (int i = 0; i < 5; i++)
             {
                 await Task.Delay(3000);
-                var connResp = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
+                var connResp = await ApiGetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
                 var connBody = await connResp.Content.ReadAsStringAsync();
                 var hasQr = connBody.Contains("base64") && !connBody.Contains("\"base64\":null") && !connBody.Contains("\"base64\":\"\"");
                 results[$"lifecycleConnect_{i+1}_status"] = (int)connResp.StatusCode;
@@ -189,7 +205,7 @@ public class WhatsAppService
             try
             {
                 // Ask Evolution for its internal health/debug info
-                var healthResp = await _http.GetAsync($"{BaseUrl}/");
+                var healthResp = await ApiGetAsync($"{BaseUrl}/");
                 var healthBody = await healthResp.Content.ReadAsStringAsync();
                 results["evoHealth"] = healthBody;
             }
@@ -201,7 +217,7 @@ public class WhatsAppService
             // 9. Check connection state after all attempts  
             try
             {
-                var stateResp = await _http.GetAsync($"{BaseUrl}/instance/connectionState/{InstanceName}");
+                var stateResp = await ApiGetAsync($"{BaseUrl}/instance/connectionState/{InstanceName}");
                 var stateBody = await stateResp.Content.ReadAsStringAsync();
                 results["finalConnectionState"] = stateBody;
             }
@@ -213,7 +229,7 @@ public class WhatsAppService
             // 10. Try fetching QR via POST to connect endpoint (some versions need POST)
             try
             {
-                var postConnResp = await _http.PostAsync($"{BaseUrl}/instance/connect/{InstanceName}", null);
+                var postConnResp = await ApiPostAsync($"{BaseUrl}/instance/connect/{InstanceName}", null);
                 var postConnBody = await postConnResp.Content.ReadAsStringAsync();
                 results["connectViaPostStatus"] = (int)postConnResp.StatusCode;
                 results["connectViaPostBody"] = postConnBody.Length > 1000 ? postConnBody[..1000] : postConnBody;
@@ -227,7 +243,7 @@ public class WhatsAppService
             // 11. Try /instance/connect without instance name and with query
             try
             {
-                var r2 = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}?number=");
+                var r2 = await ApiGetAsync($"{BaseUrl}/instance/connect/{InstanceName}?number=");
                 var b2 = await r2.Content.ReadAsStringAsync();
                 results["connectWithQueryStatus"] = (int)r2.StatusCode;
                 results["connectWithQueryBody"] = b2.Length > 1000 ? b2[..1000] : b2;
@@ -254,8 +270,6 @@ public class WhatsAppService
     /// </summary>
     public async Task<(EvolutionCreateInstanceResponse? Result, string? Error, string? RawBody)> CreateInstanceAsync()
     {
-        SetHeaders();
-
         _logger.LogInformation("Creating Evolution instance '{Instance}' at {BaseUrl}", InstanceName, BaseUrl);
 
         try
@@ -291,7 +305,7 @@ public class WhatsAppService
                 // Try restart the instance to force Baileys to initialize
                 try
                 {
-                    var restartResp = await _http.PutAsync($"{BaseUrl}/instance/restart/{InstanceName}", null);
+                    var restartResp = await ApiPutAsync($"{BaseUrl}/instance/restart/{InstanceName}", null);
                     var restartBody = await restartResp.Content.ReadAsStringAsync();
                     _logger.LogInformation("Restart response: {Status} {Body}", restartResp.StatusCode, restartBody);
                 }
@@ -354,8 +368,6 @@ public class WhatsAppService
 
     private async Task<(EvolutionCreateInstanceResponse? Result, string Body, int Status)> DoCreateInstance()
     {
-        SetHeaders();
-
         var payload = new
         {
             instanceName = InstanceName,
@@ -371,7 +383,7 @@ public class WhatsAppService
         var json = JsonSerializer.Serialize(payload);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await _http.PostAsync($"{BaseUrl}/instance/create", content);
+        var response = await ApiPostAsync($"{BaseUrl}/instance/create", content);
         var body = await response.Content.ReadAsStringAsync();
         var status = (int)response.StatusCode;
 
@@ -460,11 +472,9 @@ public class WhatsAppService
     /// </summary>
     public async Task<bool> DeleteInstanceAsync()
     {
-        SetHeaders();
-
         try
         {
-            var response = await _http.DeleteAsync($"{BaseUrl}/instance/delete/{InstanceName}");
+            var response = await ApiDeleteAsync($"{BaseUrl}/instance/delete/{InstanceName}");
             var body = await response.Content.ReadAsStringAsync();
             _logger.LogInformation("Evolution delete instance: {Status} {Body}", response.StatusCode, body);
             return response.IsSuccessStatusCode;
@@ -481,11 +491,9 @@ public class WhatsAppService
     /// </summary>
     public async Task<EvolutionQrCodeResponse?> GetQrCodeAsync()
     {
-        SetHeaders();
-
         try
         {
-            var response = await _http.GetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
+            var response = await ApiGetAsync($"{BaseUrl}/instance/connect/{InstanceName}");
             var body = await response.Content.ReadAsStringAsync();
 
             _logger.LogInformation("Evolution QR response: {Status} Body={Body}", response.StatusCode, body);
@@ -558,11 +566,9 @@ public class WhatsAppService
     /// </summary>
     public async Task<EvolutionConnectionState?> GetConnectionStatusAsync()
     {
-        SetHeaders();
-
         try
         {
-            var response = await _http.GetAsync($"{BaseUrl}/instance/connectionState/{InstanceName}");
+            var response = await ApiGetAsync($"{BaseUrl}/instance/connectionState/{InstanceName}");
             var body = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -585,11 +591,9 @@ public class WhatsAppService
     /// </summary>
     public async Task<bool> LogoutInstanceAsync()
     {
-        SetHeaders();
-
         try
         {
-            var response = await _http.DeleteAsync($"{BaseUrl}/instance/logout/{InstanceName}");
+            var response = await ApiDeleteAsync($"{BaseUrl}/instance/logout/{InstanceName}");
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -606,8 +610,6 @@ public class WhatsAppService
     /// </summary>
     public async Task<EvolutionSendMessageResponse?> SendTextMessageAsync(string phone, string message)
     {
-        SetHeaders();
-
         // Normalize phone: remove +, spaces, dashes
         var normalizedPhone = NormalizePhone(phone);
 
@@ -622,7 +624,7 @@ public class WhatsAppService
 
         try
         {
-            var response = await _http.PostAsync($"{BaseUrl}/message/sendText/{InstanceName}", content);
+            var response = await ApiPostAsync($"{BaseUrl}/message/sendText/{InstanceName}", content);
             var body = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)

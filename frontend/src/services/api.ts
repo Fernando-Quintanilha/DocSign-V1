@@ -3,7 +3,6 @@ import type {
   Employee,
   EmployeeDetail,
   Document,
-  DashboardStats,
   EnhancedDashboard,
   PendingEmployee,
   PayPeriod,
@@ -74,15 +73,6 @@ export const fetchPayPeriods = async (): Promise<PayPeriod[]> => {
   return data;
 };
 
-export const createPayPeriod = async (payload: {
-  year: number;
-  month: number;
-  label?: string;
-}): Promise<PayPeriod> => {
-  const { data } = await api.post('/payperiods', payload);
-  return data;
-};
-
 // ── Documents ─────────────────────────────────────────────
 
 export const fetchDocuments = async (params?: {
@@ -110,33 +100,11 @@ export const uploadDocument = async (
   return data;
 };
 
-export const batchUploadDocuments = async (
-  files: File[],
-  employeeIds: string[],
-  year: number,
-  month: number
-): Promise<any[]> => {
-  const formData = new FormData();
-  files.forEach((f) => formData.append('files', f));
-  employeeIds.forEach((id) => formData.append('employeeIds', id));
-  formData.append('year', year.toString());
-  formData.append('month', month.toString());
-  const { data } = await api.post('/documents/batch-upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-};
-
 export const deleteDocument = async (id: string): Promise<void> => {
   await api.delete(`/documents/${id}`);
 };
 
 // ── Dashboard ─────────────────────────────────────────────
-
-export const fetchDashboardStats = async (): Promise<DashboardStats> => {
-  const { data } = await api.get('/dashboard/stats');
-  return data;
-};
 
 export const fetchEnhancedDashboard = async (): Promise<EnhancedDashboard> => {
   const { data } = await api.get('/dashboard/enhanced');
@@ -237,19 +205,6 @@ export const sendNotification = async (
   channel: string
 ): Promise<NotificationDto> => {
   const { data } = await api.post('/notifications/send', { documentId, channel });
-  return data;
-};
-
-export const sendBulkNotification = async (
-  payPeriodId: string,
-  channel: string
-): Promise<NotificationDto[]> => {
-  const { data } = await api.post('/notifications/send-bulk', { payPeriodId, channel });
-  return data;
-};
-
-export const fetchNotifications = async (documentId?: string): Promise<NotificationDto[]> => {
-  const { data } = await api.get('/notifications', { params: { documentId } });
   return data;
 };
 

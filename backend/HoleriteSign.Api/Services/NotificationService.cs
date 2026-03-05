@@ -144,9 +144,9 @@ public class NotificationService
                 var result = await SendAsync(doc.Id, channel, adminId);
                 results.Add(result);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Continue sending to others
+                _logger.LogWarning(ex, "Failed to send notification for document {DocId}", doc.Id);
             }
         }
 

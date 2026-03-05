@@ -82,10 +82,13 @@ export default function SignPage() {
     }
   }, [token]);
 
-  // Cleanup timer on unmount
+  // Cleanup timer and camera on unmount
   useEffect(() => {
     return () => {
       if (viewTimerRef.current) clearInterval(viewTimerRef.current);
+      // Stop camera stream if still active
+      const stream = videoRef.current?.srcObject as MediaStream;
+      stream?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 

@@ -1,7 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchEmployees, fetchDocuments, fetchAuditLogs } from '../../services/api';
-import type { Employee, Document, AuditLogDto } from '../../types';
+import { fetchEmployeeDetail, fetchDocuments, fetchAuditLogs } from '../../services/api';
+import type { Document, AuditLogDto } from '../../types';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   Uploaded: { label: 'Enviado', color: 'bg-blue-100 text-blue-800' },
@@ -24,12 +24,11 @@ const eventTypeLabels: Record<string, string> = {
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
 
-  const { data: employees = [] } = useQuery({
-    queryKey: ['employees'],
-    queryFn: () => fetchEmployees(),
+  const { data: employee } = useQuery({
+    queryKey: ['employee', id],
+    queryFn: () => fetchEmployeeDetail(id!),
+    enabled: !!id,
   });
-
-  const employee = employees.find((e: Employee) => e.id === id);
 
   const { data: documents = [], isLoading: loadingDocs } = useQuery({
     queryKey: ['employee-documents', id],

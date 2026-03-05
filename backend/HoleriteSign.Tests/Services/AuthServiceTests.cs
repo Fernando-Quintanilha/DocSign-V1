@@ -13,7 +13,7 @@ public class AuthServiceTests
         TestDbHelper.SeedAsync(db).GetAwaiter().GetResult();
         var config = TestDbHelper.CreateTestConfig();
         var emailService = new EmailService(config, NullLogger<EmailService>.Instance);
-        return new AuthService(db, config, emailService);
+        return new AuthService(db, config, emailService, NullLogger<AuthService>.Instance);
     }
 
     // ── Register ──────────────────────────────────────────

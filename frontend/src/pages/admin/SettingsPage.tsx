@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchProfile, updateProfile, changePassword } from '../../services/api';
 import { useAuthStore } from '../../stores/auth';
@@ -31,10 +31,12 @@ export default function SettingsPage() {
   });
 
   // Initialize from profile
-  if (profile && !name && !companyName) {
-    setName(profile.name);
-    setCompanyName(profile.companyName);
-  }
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name);
+      setCompanyName(profile.companyName);
+    }
+  }, [profile]);
 
   const profileMutation = useMutation({
     mutationFn: () => updateProfile(name, companyName),

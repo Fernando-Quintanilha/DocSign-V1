@@ -50,7 +50,7 @@ export default function DocumentsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-enhanced'] });
       setShowUpload(false);
       setFile(null);
       setSelectedEmployee('');
@@ -65,7 +65,7 @@ export default function DocumentsPage() {
     mutationFn: deleteDocument,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-enhanced'] });
     },
   });
 

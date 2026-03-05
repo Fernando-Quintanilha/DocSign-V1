@@ -35,7 +35,7 @@ public class GlobalExceptionMiddleware
             context.Response.StatusCode = ex switch
             {
                 InvalidOperationException => (int)HttpStatusCode.BadRequest,
-                UnauthorizedAccessException => (int)HttpStatusCode.Forbidden,
+                UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,
                 KeyNotFoundException => (int)HttpStatusCode.NotFound,
                 _ => (int)HttpStatusCode.InternalServerError,
             };
@@ -47,7 +47,7 @@ public class GlobalExceptionMiddleware
                 error = context.Response.StatusCode switch
                 {
                     400 => "BadRequest",
-                    403 => "Forbidden",
+                    401 => "Unauthorized",
                     404 => "NotFound",
                     _ => "InternalServerError",
                 },

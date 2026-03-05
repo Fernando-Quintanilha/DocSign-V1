@@ -16,12 +16,14 @@ public class AuthService
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
     private readonly EmailService _email;
+    private readonly ILogger<AuthService> _logger;
 
-    public AuthService(AppDbContext db, IConfiguration config, EmailService email)
+    public AuthService(AppDbContext db, IConfiguration config, EmailService email, ILogger<AuthService> logger)
     {
         _db = db;
         _config = config;
         _email = email;
+        _logger = logger;
     }
 
     // ── Register ─────────────────────────────────────────
@@ -63,12 +65,12 @@ public class AuthService
         {
             await SendVerificationEmailInternalAsync(admin);
         }
-        catch
+        catch (Exception ex)
         {
-            // Don't block registration if email fails
+            _logger.LogWarning(ex, "Failed to send verification email to {Email}", admin.Email);
         }
 
-        var (jwt, refreshToken) = GenerateTokens(admin);
+        var (jwt, refreshToken) = await GenerateTokensAsync(admin);
         return new AuthResponse(jwt, refreshToken, MapToDto(admin));
     }
 
@@ -86,7 +88,7 @@ public class AuthService
         if (!admin.IsActive)
             throw new UnauthorizedAccessException("Conta desativada.");
 
-        var (jwt, refreshToken) = GenerateTokens(admin);
+        var (jwt, refreshToken) = await GenerateTokensAsync(admin);
         return new AuthResponse(jwt, refreshToken, MapToDto(admin));
     }
 
@@ -106,7 +108,7 @@ public class AuthService
         if (!admin.IsActive)
             throw new UnauthorizedAccessException("Conta desativada.");
 
-        var (jwt, refreshToken) = GenerateTokens(admin);
+        var (jwt, refreshToken) = await GenerateTokensAsync(admin);
         return new RefreshTokenResponse(jwt, refreshToken);
     }
 
@@ -253,7 +255,7 @@ public class AuthService
 
     // ── Token Generation ─────────────────────────────────
 
-    private (string jwt, string refreshToken) GenerateTokens(Admin admin)
+    private async Task<(string jwt, string refreshToken)> GenerateTokensAsync(Admin admin)
     {
         var jwt = GenerateJwt(admin);
         var refreshToken = GenerateSecureToken();
@@ -262,7 +264,7 @@ public class AuthService
         admin.RefreshToken = HashToken(refreshToken);
         admin.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(30);
         admin.UpdatedAt = DateTime.UtcNow;
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
 
         return (jwt, refreshToken);
     }
