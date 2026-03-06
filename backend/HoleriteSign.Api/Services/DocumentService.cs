@@ -82,7 +82,8 @@ public class DocumentService
     public async Task<DocumentDto> UploadAsync(IFormFile file, Guid employeeId, int year, int month, Guid adminId)
     {
         // ── Plan limit enforcement ──
-        var admin = await _db.Admins.Include(a => a.Plan).FirstAsync(a => a.Id == adminId);
+        var admin = await _db.Admins.Include(a => a.Plan).FirstOrDefaultAsync(a => a.Id == adminId)
+            ?? throw new KeyNotFoundException($"Admin {adminId} não encontrado.");
         if (admin.Plan.MaxDocuments > 0)
         {
             var now = DateTime.UtcNow;

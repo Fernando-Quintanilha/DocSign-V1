@@ -216,7 +216,8 @@ public class NotificationsController : ControllerBase
             var now = DateTime.UtcNow;
             foreach (var notif in notifications)
             {
-                var update = updates.First(u => u.messageId == notif.ExternalId);
+                var update = updates.FirstOrDefault(u => u.messageId == notif.ExternalId);
+                if (update.messageId == null) continue;
                 switch (update.status.ToUpperInvariant())
                 {
                     case "DELIVERY_ACK":

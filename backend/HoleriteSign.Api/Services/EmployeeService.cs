@@ -115,7 +115,8 @@ public class EmployeeService
     public async Task<EmployeeDto> CreateAsync(CreateEmployeeRequest request, Guid adminId)
     {
         // ── Plan limit enforcement ──
-        var admin = await _db.Admins.Include(a => a.Plan).FirstAsync(a => a.Id == adminId);
+        var admin = await _db.Admins.Include(a => a.Plan).FirstOrDefaultAsync(a => a.Id == adminId)
+            ?? throw new KeyNotFoundException($"Admin {adminId} não encontrado.");
         if (admin.Plan.MaxEmployees > 0)
         {
             var currentCount = await _db.Employees

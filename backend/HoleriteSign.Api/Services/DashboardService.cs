@@ -44,7 +44,8 @@ public class DashboardService
         // Get plan info
         var admin = await _db.Admins
             .Include(a => a.Plan)
-            .FirstAsync(a => a.Id == adminId);
+            .FirstOrDefaultAsync(a => a.Id == adminId)
+            ?? throw new KeyNotFoundException($"Admin {adminId} não encontrado.");
 
         return new DashboardStatsDto(
             totalEmployees,
@@ -63,7 +64,8 @@ public class DashboardService
     {
         var admin = await _db.Admins
             .Include(a => a.Plan)
-            .FirstAsync(a => a.Id == adminId);
+            .FirstOrDefaultAsync(a => a.Id == adminId)
+            ?? throw new KeyNotFoundException($"Admin {adminId} não encontrado.");
 
         // Basic counts — explicit adminId filtering
         var totalEmployees = await _db.Employees

@@ -48,7 +48,8 @@ public class PlansController : ControllerBase
     {
         var admin = await _db.Admins
             .Include(a => a.Plan)
-            .FirstAsync(a => a.Id == GetAdminId());
+            .FirstOrDefaultAsync(a => a.Id == GetAdminId());
+        if (admin == null) return NotFound("Admin não encontrado.");
 
         return Ok(new
         {
