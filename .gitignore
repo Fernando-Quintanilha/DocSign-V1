@@ -1,9 +1,10 @@
-# ── Secrets ──────────────────────────────────────────────────
+# ── Secrets / Credentials ────────────────────────────────────
 .env
-.env.prod
-.env.local
+.env.*
+!.env.prod.example
 *.env
 **/appsettings.Development.json
+ssh.js
 
 # ── IDE ──────────────────────────────────────────────────────
 .vs/
@@ -40,3 +41,13 @@ test_*.js
 deploy*.js
 ssh_cmd.js
 fix_*.js
+deploy.sh
+backup-database.sh
+
+# ── Backups (contain data) ────────────────────────────────────
+backups/
+
+# ── Generated docs (not source) ──────────────────────────────
+VPS_DEPLOYMENT_GUIDE.md
+DOKPLOY_STEP_BY_STEP.md
+STATUS_RESUMO.md
