@@ -206,8 +206,6 @@ services:
     networks:
       - hs-internal
       - dokploy-network
-    ports:
-      - "80:80"
 
 volumes:
   pgdata:
