@@ -43,7 +43,9 @@ public class EmailService
         using var client = new SmtpClient(smtpHost, smtpPort)
         {
             EnableSsl = true,
+            UseDefaultCredentials = false,
             Credentials = new NetworkCredential(smtpUser, smtpPass),
+            DeliveryMethod = SmtpDeliveryMethod.Network,
         };
 
         var message = new MailMessage
