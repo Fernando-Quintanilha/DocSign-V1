@@ -7,9 +7,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB=holeritesign
-      POSTGRES_USER=holeritesign
-      POSTGRES_PASSWORD=Xf4xSo89TczLsQ5HWIUNt2rM3AjBRmOY
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
